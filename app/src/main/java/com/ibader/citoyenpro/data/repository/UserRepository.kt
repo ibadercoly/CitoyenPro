@@ -54,7 +54,7 @@ class UserRepository(
     // Vérifie l'email et le mot de passe, puis ouvre la session en cas de succès.
     suspend fun login(email: String, password: String): Result<UserEntity> = runCatching {
         val user = userDao.getByEmail(email) ?: throw InvalidCredentialsException()
-        if (user.motDePasseHash != PasswordHasher.hash(password)) throw InvalidCredentialsException()
+        if (!PasswordHasher.verify(password, user.motDePasseHash)) throw InvalidCredentialsException()
         _currentUser.value = user
         user
     }

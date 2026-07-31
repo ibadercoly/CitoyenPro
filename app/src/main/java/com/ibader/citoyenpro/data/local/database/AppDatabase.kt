@@ -5,12 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ibader.citoyenpro.data.local.dao.CategoryDao
 import com.ibader.citoyenpro.data.local.dao.IncidentDao
+import com.ibader.citoyenpro.data.local.dao.IncidentStatusHistoryDao
 import com.ibader.citoyenpro.data.local.dao.UserDao
 import com.ibader.citoyenpro.data.local.entities.CategoryEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentEntity
+import com.ibader.citoyenpro.data.local.entities.IncidentStatusHistoryEntity
 import com.ibader.citoyenpro.data.local.entities.UserEntity
 import com.ibader.citoyenpro.domain.model.UserRole
 import com.ibader.citoyenpro.util.PasswordHasher
@@ -20,8 +23,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [UserEntity::class, CategoryEntity::class, IncidentEntity::class],
-    version = 1,
+    entities = [
+        UserEntity::class,
+        CategoryEntity::class,
+        IncidentEntity::class,
+        IncidentStatusHistoryEntity::class
+    ],
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -30,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun categoryDao(): CategoryDao
     abstract fun incidentDao(): IncidentDao
+    abstract fun incidentStatusHistoryDao(): IncidentStatusHistoryDao
 
     companion object {
         private const val DATABASE_NAME = "citoyenpro.db"
@@ -38,6 +47,29 @@ abstract class AppDatabase : RoomDatabase() {
         // A retirer (ou changer de mot de passe) avant toute mise en production.
         private const val ADMIN_TEST_EMAIL = "admin@citoyenpro.local"
         private const val ADMIN_TEST_PASSWORD = "admin123"
+
+        // Ajout de la table d'historique des changements de statut d'un signalement ;
+        // les tables existantes ne sont pas affectées, aucune perte de données.
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `incident_status_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `incidentId` INTEGER NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `date` INTEGER NOT NULL,
+                        `commentaire` TEXT,
+                        FOREIGN KEY(`incidentId`) REFERENCES `incidents`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_incident_status_history_incidentId` " +
+                        "ON `incident_status_history` (`incidentId`)"
+                )
+            }
+        }
 
         private val defaultCategories = listOf(
             CategoryEntity(nom = "Voirie", description = "Chaussées, trottoirs et signalisation routière endommagés"),
@@ -58,6 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(SeedCallback())
                 .build()
 

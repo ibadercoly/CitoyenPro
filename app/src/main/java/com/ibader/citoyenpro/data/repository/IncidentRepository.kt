@@ -14,9 +14,28 @@ class IncidentRepository(
 
     suspend fun update(incident: IncidentEntity) = incidentDao.update(incident)
 
+    // Retourne l'incident mis à jour (avec son nouveau statut et sa nouvelle
+    // date de mise à jour), ou null si l'incident n'existe plus.
+    suspend fun updateStatus(id: Long, status: IncidentStatus): IncidentEntity? {
+        val incident = incidentDao.getById(id) ?: return null
+        val updated = incident.copy(status = status, dateMaj = System.currentTimeMillis())
+        incidentDao.update(updated)
+        return updated
+    }
+
+    // Retourne l'incident mis à jour, ou null si l'incident n'existe plus.
+    suspend fun updateServiceAffecte(id: Long, serviceAffecte: String?): IncidentEntity? {
+        val incident = incidentDao.getById(id) ?: return null
+        val updated = incident.copy(serviceAffecte = serviceAffecte, dateMaj = System.currentTimeMillis())
+        incidentDao.update(updated)
+        return updated
+    }
+
     suspend fun delete(incident: IncidentEntity) = incidentDao.delete(incident)
 
     suspend fun getById(id: Long): IncidentEntity? = incidentDao.getById(id)
+
+    fun observeById(id: Long): Flow<IncidentEntity?> = incidentDao.getByIdFlow(id)
 
     fun getAll(): Flow<List<IncidentEntity>> = incidentDao.getAll()
 

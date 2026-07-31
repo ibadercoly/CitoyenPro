@@ -24,6 +24,9 @@ interface IncidentDao {
     @Query("SELECT * FROM incidents WHERE id = :id")
     suspend fun getById(id: Long): IncidentEntity?
 
+    @Query("SELECT * FROM incidents WHERE id = :id")
+    fun getByIdFlow(id: Long): Flow<IncidentEntity?>
+
     @Query("SELECT * FROM incidents ORDER BY date_creation DESC")
     fun getAll(): Flow<List<IncidentEntity>>
 

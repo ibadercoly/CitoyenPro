@@ -91,6 +91,9 @@ dependencies {
     // Permissions runtime en Compose
     implementation(libs.accompanist.permissions)
 
+    // Géolocalisation (FusedLocationProviderClient)
+    implementation(libs.play.services.location)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
