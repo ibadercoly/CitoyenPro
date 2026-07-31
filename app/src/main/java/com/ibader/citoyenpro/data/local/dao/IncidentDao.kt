@@ -1,0 +1,38 @@
+package com.ibader.citoyenpro.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import com.ibader.citoyenpro.data.local.entities.IncidentEntity
+import com.ibader.citoyenpro.domain.model.IncidentStatus
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface IncidentDao {
+
+    @Insert
+    suspend fun insert(incident: IncidentEntity): Long
+
+    @Update
+    suspend fun update(incident: IncidentEntity)
+
+    @Delete
+    suspend fun delete(incident: IncidentEntity)
+
+    @Query("SELECT * FROM incidents WHERE id = :id")
+    suspend fun getById(id: Long): IncidentEntity?
+
+    @Query("SELECT * FROM incidents ORDER BY date_creation DESC")
+    fun getAll(): Flow<List<IncidentEntity>>
+
+    @Query("SELECT * FROM incidents WHERE citoyenId = :citoyenId ORDER BY date_creation DESC")
+    fun getByCitoyen(citoyenId: Long): Flow<List<IncidentEntity>>
+
+    @Query("SELECT * FROM incidents WHERE status = :status ORDER BY date_creation DESC")
+    fun getByStatus(status: IncidentStatus): Flow<List<IncidentEntity>>
+
+    @Query("SELECT * FROM incidents WHERE categoryId = :categoryId ORDER BY date_creation DESC")
+    fun getByCategory(categoryId: Long): Flow<List<IncidentEntity>>
+}
