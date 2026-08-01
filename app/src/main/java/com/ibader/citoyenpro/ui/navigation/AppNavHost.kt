@@ -118,7 +118,8 @@ fun AppNavHost(
                 incidentRepository = incidentRepository,
                 incidentStatusHistoryRepository = incidentStatusHistoryRepository,
                 categoryRepository = categoryRepository,
-                incidentUpdateService = incidentUpdateService
+                incidentUpdateService = incidentUpdateService,
+                userRepository = userRepository
             )
         }
     }

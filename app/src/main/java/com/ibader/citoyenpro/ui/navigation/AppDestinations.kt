@@ -3,6 +3,7 @@ package com.ibader.citoyenpro.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Warning
@@ -29,13 +30,20 @@ sealed class CitizenDestination(val route: String, val label: String, val icon: 
     }
 }
 
-// Onglets de la barre de navigation basse de l'espace admin.
+// Onglets de la barre de navigation basse de l'espace admin. Avec 5 onglets,
+// des libellés longs ("Tableau de bord", "Statistiques", "Utilisateurs")
+// passent à la ligne ou débordent sur un écran de téléphone standard
+// (~360-420dp) : les libellés restent donc volontairement courts (une seule
+// ligne, sans troncature) plutôt que descriptifs, cf. AdminNavHost pour le
+// style de texte associé.
 sealed class AdminDestination(val route: String, val label: String, val icon: ImageVector) {
-    object Dashboard : AdminDestination("admin_dashboard", "Tableau de bord", Icons.Filled.Home)
-    object Incidents : AdminDestination("admin_incidents", "Signalements", Icons.Filled.Warning)
-    object Users : AdminDestination("admin_users", "Utilisateurs", Icons.Filled.Person)
+    object Dashboard : AdminDestination("admin_dashboard", "Accueil", Icons.Filled.Home)
+    object Incidents : AdminDestination("admin_incidents", "Alertes", Icons.Filled.Warning)
+    object Categories : AdminDestination("admin_categories", "Types", Icons.AutoMirrored.Filled.List)
+    object Stats : AdminDestination("admin_stats", "Stats", Icons.Filled.Info)
+    object Users : AdminDestination("admin_users", "Comptes", Icons.Filled.Person)
 
     companion object {
-        val items = listOf(Dashboard, Incidents, Users)
+        val items = listOf(Dashboard, Incidents, Categories, Stats, Users)
     }
 }

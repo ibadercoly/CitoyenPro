@@ -3,6 +3,7 @@ package com.ibader.citoyenpro.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -12,6 +13,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -24,18 +28,22 @@ import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentUpdateService
-import com.ibader.citoyenpro.ui.admin.AdminDashboardScreen
+import com.ibader.citoyenpro.data.repository.UserRepository
+import com.ibader.citoyenpro.ui.admin.AdminCategoriesRoute
+import com.ibader.citoyenpro.ui.admin.AdminDashboardRoute
 import com.ibader.citoyenpro.ui.admin.AdminIncidentDetailRoute
 import com.ibader.citoyenpro.ui.admin.AdminIncidentsRoute
-import com.ibader.citoyenpro.ui.admin.AdminUsersScreen
+import com.ibader.citoyenpro.ui.admin.AdminStatsRoute
+import com.ibader.citoyenpro.ui.admin.AdminUsersRoute
+import com.ibader.citoyenpro.ui.common.SyncStatusIndicator
 
 private const val INCIDENT_DETAIL_ROUTE = "admin_incident_detail"
 private const val INCIDENT_ID_ARG = "incidentId"
 
-// Espace admin : barre de navigation basse (Tableau de bord / Signalements /
-// Utilisateurs) et bouton de déconnexion, au-dessus d'un NavHost imbriqué
-// pour les onglets. Le détail d'un signalement est empilé par-dessus les
-// onglets (pas un onglet lui-même), comme côté citoyen.
+// Espace admin : barre de navigation basse (5 onglets, cf. AdminDestination)
+// et bouton de déconnexion, au-dessus d'un NavHost imbriqué pour les onglets.
+// Le détail d'un signalement est empilé par-dessus les onglets (pas un
+// onglet lui-même), comme côté citoyen.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminNavHost(
@@ -44,6 +52,7 @@ fun AdminNavHost(
     incidentStatusHistoryRepository: IncidentStatusHistoryRepository,
     categoryRepository: CategoryRepository,
     incidentUpdateService: IncidentUpdateService,
+    userRepository: UserRepository,
     modifier: Modifier = Modifier
 ) {
     val tabNavController = rememberNavController()
@@ -54,6 +63,10 @@ fun AdminNavHost(
             TopAppBar(
                 title = { Text("Espace administrateur") },
                 actions = {
+                    SyncStatusIndicator(
+                        incidentRepository = incidentRepository,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                     TextButton(onClick = onLogout) {
                         Text("Déconnexion")
                     }
@@ -78,7 +91,24 @@ fun AdminNavHost(
                             }
                         },
                         icon = { Icon(destination.icon, contentDescription = destination.label) },
-                        label = { Text(destination.label) }
+                        // labelSmall (plutôt que labelMedium, la taille par défaut de
+                        // NavigationBarItem) + une seule ligne forcée : à 5 onglets sur
+                        // un écran de téléphone standard (~360-420dp), la taille par
+                        // défaut fait passer les libellés les plus longs à la ligne, ce
+                        // qui casse aussi le centrage vertical icône/texte. Le libellé
+                        // est déjà volontairement court (cf. AppDestinations) ; l'ellipse
+                        // n'est qu'un filet de sécurité (réglages d'accessibilité en
+                        // grande police, etc.), pas le comportement attendu en pratique.
+                        label = {
+                            Text(
+                                text = destination.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     )
                 }
             }
@@ -89,7 +119,15 @@ fun AdminNavHost(
             startDestination = AdminDestination.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(AdminDestination.Dashboard.route) { AdminDashboardScreen() }
+            composable(AdminDestination.Dashboard.route) {
+                AdminDashboardRoute(
+                    incidentRepository = incidentRepository,
+                    categoryRepository = categoryRepository,
+                    onIncidentClick = { incidentId ->
+                        tabNavController.navigate("$INCIDENT_DETAIL_ROUTE/$incidentId")
+                    }
+                )
+            }
             composable(AdminDestination.Incidents.route) {
                 AdminIncidentsRoute(
                     incidentRepository = incidentRepository,
@@ -99,7 +137,16 @@ fun AdminNavHost(
                     }
                 )
             }
-            composable(AdminDestination.Users.route) { AdminUsersScreen() }
+            composable(AdminDestination.Categories.route) {
+                AdminCategoriesRoute(categoryRepository = categoryRepository)
+            }
+            composable(AdminDestination.Stats.route) {
+                AdminStatsRoute(
+                    incidentRepository = incidentRepository,
+                    categoryRepository = categoryRepository
+                )
+            }
+            composable(AdminDestination.Users.route) { AdminUsersRoute(userRepository = userRepository) }
             composable(
                 route = "$INCIDENT_DETAIL_ROUTE/{$INCIDENT_ID_ARG}",
                 arguments = listOf(navArgument(INCIDENT_ID_ARG) { type = NavType.LongType })
