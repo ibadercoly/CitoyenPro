@@ -26,6 +26,9 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE email = :email")
     suspend fun getByEmail(email: String): UserEntity?
 
+    @Query("SELECT * FROM users WHERE firebase_uid = :firebaseUid")
+    suspend fun getByFirebaseUid(firebaseUid: String): UserEntity?
+
     @Query("SELECT * FROM users ORDER BY nom")
     fun getAll(): Flow<List<UserEntity>>
 }

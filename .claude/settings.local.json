@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(mkdir -p app/src/main/java/com/ibader/citoyenpro/ui/theme)",
-      "Bash(mkdir -p app/src/test/java/com/ibader/citoyenpro)",
-      "Bash(mkdir -p app/src/androidTest/java/com/ibader/citoyenpro)"
-    ]
-  }
-}

@@ -117,7 +117,9 @@ class AuthViewModel(
     }
 
     fun logout() {
-        userRepository.logout()
+        viewModelScope.launch {
+            userRepository.logout()
+        }
     }
 
     private fun validateEmail(email: String): String? = when {

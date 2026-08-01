@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -96,6 +97,14 @@ dependencies {
 
     // WorkManager (synchronisation en arrière-plan)
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Firebase Authentication + Cloud Messaging (BOM aligne les versions de tous les artefacts Firebase)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.messaging)
+
+    // Pont coroutines <-> Task (Firebase) pour utiliser .await()
+    implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -6,17 +6,22 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.ibader.citoyenpro.domain.model.UserRole
 
+// Les identifiants (email/mot de passe) sont gérés par Firebase Authentication ;
+// firebaseUid relie ce profil applicatif (rôle, nom, points) au compte Firebase.
 @Entity(
     tableName = "users",
-    indices = [Index(value = ["email"], unique = true)]
+    indices = [
+        Index(value = ["email"], unique = true),
+        Index(value = ["firebase_uid"], unique = true)
+    ]
 )
 data class UserEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0L,
+    @ColumnInfo(name = "firebase_uid")
+    val firebaseUid: String,
     val nom: String,
     val email: String,
-    @ColumnInfo(name = "mot_de_passe_hash")
-    val motDePasseHash: String,
     val role: UserRole,
     val points: Int = 0
 )

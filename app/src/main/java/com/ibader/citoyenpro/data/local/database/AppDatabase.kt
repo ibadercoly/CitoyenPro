@@ -19,8 +19,6 @@ import com.ibader.citoyenpro.data.local.entities.IncidentStatusHistoryEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentVoteEntity
 import com.ibader.citoyenpro.data.local.entities.PendingIncidentOperationEntity
 import com.ibader.citoyenpro.data.local.entities.UserEntity
-import com.ibader.citoyenpro.domain.model.UserRole
-import com.ibader.citoyenpro.util.PasswordHasher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +33,7 @@ import kotlinx.coroutines.launch
         PendingIncidentOperationEntity::class,
         IncidentVoteEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -50,11 +48,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         private const val DATABASE_NAME = "citoyenpro.db"
-
-        // Identifiants du compte administrateur de test créé au premier lancement.
-        // A retirer (ou changer de mot de passe) avant toute mise en production.
-        private const val ADMIN_TEST_EMAIL = "admin@citoyenpro.local"
-        private const val ADMIN_TEST_PASSWORD = "admin123"
 
         // Ajout de la table d'historique des changements de statut d'un signalement ;
         // les tables existantes ne sont pas affectées, aucune perte de données.
@@ -128,6 +121,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Passage à Firebase Authentication : les identifiants (mot de passe
+        // haché) ne sont plus stockés localement, remplacés par un firebase_uid
+        // qui rattache le profil applicatif (rôle, points) au compte Firebase.
+        // Les comptes existants n'ayant pas de compte Firebase correspondant,
+        // la table est recréée vide ; chaque utilisateur devra s'inscrire à
+        // nouveau (via Firebase) pour obtenir un nouveau profil applicatif.
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `users`")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `users` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `firebase_uid` TEXT NOT NULL,
+                        `nom` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `role` TEXT NOT NULL,
+                        `points` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_users_email` ON `users` (`email`)")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_users_firebase_uid` ON `users` (`firebase_uid`)"
+                )
+            }
+        }
+
         private val defaultCategories = listOf(
             CategoryEntity(nom = "Voirie", description = "Chaussées, trottoirs et signalisation routière endommagés"),
             CategoryEntity(nom = "Éclairage public", description = "Lampadaires en panne ou éclairage défectueux"),
@@ -147,22 +168,18 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .addCallback(SeedCallback())
                 .build()
 
+        // Les comptes utilisateurs sont désormais créés via Firebase Authentication
+        // (inscription depuis l'app) ; seules les catégories par défaut sont
+        // encore semées ici. Pour créer le premier compte admin : inscrivez-vous
+        // normalement depuis l'app, puis passez son rôle à ADMIN en base.
         private suspend fun seedDatabase(database: AppDatabase) {
             database.categoryDao().let { categoryDao ->
                 defaultCategories.forEach { categoryDao.insert(it) }
             }
-            database.userDao().insert(
-                UserEntity(
-                    nom = "Administrateur",
-                    email = ADMIN_TEST_EMAIL,
-                    motDePasseHash = PasswordHasher.hash(ADMIN_TEST_PASSWORD),
-                    role = UserRole.ADMIN
-                )
-            )
         }
 
         private class SeedCallback : Callback() {

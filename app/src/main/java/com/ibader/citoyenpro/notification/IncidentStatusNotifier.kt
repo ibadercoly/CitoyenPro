@@ -25,20 +25,7 @@ import com.ibader.citoyenpro.domain.model.IncidentStatus
 class IncidentStatusNotifier(private val context: Context) {
 
     init {
-        createChannel()
-    }
-
-    private fun createChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Suivi des signalements",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Notifie le citoyen lorsqu'un de ses signalements est mis à jour"
-        }
-        context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        ensureChannel(context)
     }
 
     fun notifyStatusChanged(incident: IncidentEntity, newStatus: IncidentStatus) {
@@ -87,5 +74,22 @@ class IncidentStatusNotifier(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "incident_status_updates"
+
+        // Idempotent : appelable à la fois par IncidentStatusNotifier (déclenché
+        // depuis l'appareil courant) et FcmService (push distante reçue alors que
+        // MainActivity n'a jamais tourné dans ce process), pour garantir que le
+        // canal existe avant de poster une notification.
+        fun ensureChannel(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Suivi des signalements",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifie le citoyen lorsqu'un de ses signalements est mis à jour"
+            }
+            context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        }
     }
 }

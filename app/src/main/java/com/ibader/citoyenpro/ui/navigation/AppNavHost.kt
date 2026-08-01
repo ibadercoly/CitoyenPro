@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -24,6 +25,7 @@ import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.UserRole
 import com.ibader.citoyenpro.ui.auth.LoginRoute
 import com.ibader.citoyenpro.ui.auth.RegisterRoute
+import kotlinx.coroutines.launch
 
 // Graphe racine : bascule entre le parcours d'authentification et l'espace
 // citoyen/admin en fonction du rôle de l'utilisateur connecté. La navigation
@@ -44,6 +46,8 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController()
 ) {
     val currentUser by userRepository.currentUser.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val onLogout: () -> Unit = { coroutineScope.launch { userRepository.logout() } }
 
     // Tentative de rattrapage immédiate au lancement de l'app : rejoue la
     // file d'opérations laissées en attente par une session précédente
@@ -52,6 +56,10 @@ fun AppNavHost(
     // cours de session, filet de sécurité périodique) sont prises en charge
     // par ConnectivitySyncTrigger + IncidentSyncWorker (cf. MainActivity).
     LaunchedEffect(Unit) {
+        // Firebase persiste sa propre session sur disque : on la restaure ici
+        // pour retrouver le profil applicatif (rôle) après un redémarrage du
+        // process, avant de tenter de rejouer les opérations en attente.
+        userRepository.restoreSession()
         incidentRepository.syncPendingChanges()
     }
 
@@ -103,7 +111,7 @@ fun AppNavHost(
         }
         composable(AppRoute.CITIZEN_SPACE) {
             CitizenNavHost(
-                onLogout = userRepository::logout,
+                onLogout = onLogout,
                 incidentRepository = incidentRepository,
                 incidentStatusHistoryRepository = incidentStatusHistoryRepository,
                 incidentVoteRepository = incidentVoteRepository,
@@ -114,7 +122,7 @@ fun AppNavHost(
         }
         composable(AppRoute.ADMIN_SPACE) {
             AdminNavHost(
-                onLogout = userRepository::logout,
+                onLogout = onLogout,
                 incidentRepository = incidentRepository,
                 incidentStatusHistoryRepository = incidentStatusHistoryRepository,
                 categoryRepository = categoryRepository,
