@@ -12,6 +12,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -31,6 +32,7 @@ import com.ibader.citoyenpro.ui.citizen.CitizenProfileScreen
 import com.ibader.citoyenpro.ui.citizen.CreateIncidentRoute
 import com.ibader.citoyenpro.ui.citizen.IncidentDetailRoute
 import com.ibader.citoyenpro.ui.citizen.MyIncidentsRoute
+import com.ibader.citoyenpro.ui.common.SyncStatusIndicator
 
 private const val CREATE_INCIDENT_ROUTE = "citizen_create_incident"
 private const val INCIDENT_DETAIL_ROUTE = "citizen_incident_detail"
@@ -63,6 +65,10 @@ fun CitizenNavHost(
             TopAppBar(
                 title = { Text("Espace citoyen") },
                 actions = {
+                    SyncStatusIndicator(
+                        incidentRepository = incidentRepository,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                     TextButton(onClick = onLogout) {
                         Text("Déconnexion")
                     }

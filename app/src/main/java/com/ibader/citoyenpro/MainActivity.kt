@@ -5,15 +5,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.ibader.citoyenpro.data.local.database.AppDatabase
+import com.ibader.citoyenpro.data.remote.RetrofitClient
 import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentUpdateService
 import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
+import com.ibader.citoyenpro.data.sync.IncidentSyncWorker
 import com.ibader.citoyenpro.notification.IncidentStatusNotifier
 import com.ibader.citoyenpro.ui.navigation.AppNavHost
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
+import com.ibader.citoyenpro.util.ConnectivitySyncTrigger
+import com.ibader.citoyenpro.util.NetworkMonitor
 import java.io.File
 import org.osmdroid.config.Configuration
 
@@ -34,7 +38,12 @@ class MainActivity : ComponentActivity() {
 
         val database = AppDatabase.getInstance(applicationContext)
         val userRepository = UserRepository(database.userDao())
-        val incidentRepository = IncidentRepository(database.incidentDao())
+        val incidentRepository = IncidentRepository(
+            incidentDao = database.incidentDao(),
+            pendingOperationDao = database.pendingIncidentOperationDao(),
+            apiService = RetrofitClient.getApiService(),
+            networkMonitor = NetworkMonitor(applicationContext)
+        )
         val incidentStatusHistoryRepository = IncidentStatusHistoryRepository(database.incidentStatusHistoryDao())
         val categoryRepository = CategoryRepository(database.categoryDao())
         val locationRepository = LocationRepository(applicationContext)
@@ -44,6 +53,12 @@ class MainActivity : ComponentActivity() {
             incidentStatusHistoryRepository,
             incidentStatusNotifier
         )
+
+        // Synchro auto : rejoue dès que le réseau revient (ConnectivitySyncTrigger)
+        // et périodiquement en filet de sécurité (WorkManager). Idempotent :
+        // sûr à rappeler à chaque recréation de l'activité (rotation...).
+        ConnectivitySyncTrigger.start(applicationContext)
+        IncidentSyncWorker.enqueuePeriodic(applicationContext)
 
         setContent {
             CitoyenProTheme {

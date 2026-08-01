@@ -10,10 +10,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ibader.citoyenpro.data.local.dao.CategoryDao
 import com.ibader.citoyenpro.data.local.dao.IncidentDao
 import com.ibader.citoyenpro.data.local.dao.IncidentStatusHistoryDao
+import com.ibader.citoyenpro.data.local.dao.PendingIncidentOperationDao
 import com.ibader.citoyenpro.data.local.dao.UserDao
 import com.ibader.citoyenpro.data.local.entities.CategoryEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentStatusHistoryEntity
+import com.ibader.citoyenpro.data.local.entities.PendingIncidentOperationEntity
 import com.ibader.citoyenpro.data.local.entities.UserEntity
 import com.ibader.citoyenpro.domain.model.UserRole
 import com.ibader.citoyenpro.util.PasswordHasher
@@ -27,9 +29,10 @@ import kotlinx.coroutines.launch
         UserEntity::class,
         CategoryEntity::class,
         IncidentEntity::class,
-        IncidentStatusHistoryEntity::class
+        IncidentStatusHistoryEntity::class,
+        PendingIncidentOperationEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -39,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun incidentDao(): IncidentDao
     abstract fun incidentStatusHistoryDao(): IncidentStatusHistoryDao
+    abstract fun pendingIncidentOperationDao(): PendingIncidentOperationDao
 
     companion object {
         private const val DATABASE_NAME = "citoyenpro.db"
@@ -71,6 +75,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Ajout de la file d'attente de synchronisation des signalements
+        // (IncidentRepository) ; les tables existantes ne sont pas affectées,
+        // aucune perte de données.
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `pending_incident_operations` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `incidentId` INTEGER NOT NULL,
+                        `operationType` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_pending_incident_operations_incidentId` " +
+                        "ON `pending_incident_operations` (`incidentId`)"
+                )
+            }
+        }
+
         private val defaultCategories = listOf(
             CategoryEntity(nom = "Voirie", description = "Chaussées, trottoirs et signalisation routière endommagés"),
             CategoryEntity(nom = "Éclairage public", description = "Lampadaires en panne ou éclairage défectueux"),
@@ -90,7 +116,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(SeedCallback())
                 .build()
 

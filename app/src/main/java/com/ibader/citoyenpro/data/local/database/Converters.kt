@@ -1,6 +1,7 @@
 package com.ibader.citoyenpro.data.local.database
 
 import androidx.room.TypeConverter
+import com.ibader.citoyenpro.data.local.entities.PendingOperationType
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.UserRole
@@ -28,4 +29,10 @@ class Converters {
 
     @TypeConverter
     fun toUserRole(value: String): UserRole = UserRole.valueOf(value)
+
+    @TypeConverter
+    fun fromPendingOperationType(type: PendingOperationType): String = type.name
+
+    @TypeConverter
+    fun toPendingOperationType(value: String): PendingOperationType = PendingOperationType.valueOf(value)
 }

@@ -3,6 +3,7 @@ package com.ibader.citoyenpro.data.local.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.ibader.citoyenpro.data.local.entities.IncidentEntity
@@ -17,6 +18,12 @@ interface IncidentDao {
 
     @Update
     suspend fun update(incident: IncidentEntity)
+
+    // Insertion ou remplacement par id : utilisé pour fusionner les
+    // signalements reçus de l'API dans Room (IncidentRepository.pullRemoteIncidents),
+    // où l'id distant doit être pris tel quel plutôt que ré-autogénéré.
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(incident: IncidentEntity)
 
     @Delete
     suspend fun delete(incident: IncidentEntity)

@@ -43,6 +43,16 @@ fun AppNavHost(
 ) {
     val currentUser by userRepository.currentUser.collectAsStateWithLifecycle()
 
+    // Tentative de rattrapage immédiate au lancement de l'app : rejoue la
+    // file d'opérations laissées en attente par une session précédente
+    // hors-ligne et rafraîchit Room avec les dernières données distantes, si
+    // le réseau est disponible. Les tentatives suivantes (retour réseau en
+    // cours de session, filet de sécurité périodique) sont prises en charge
+    // par ConnectivitySyncTrigger + IncidentSyncWorker (cf. MainActivity).
+    LaunchedEffect(Unit) {
+        incidentRepository.syncPendingChanges()
+    }
+
     // Demandée dès qu'une session est ouverte (citoyen ou admin) : les
     // notifications de changement de statut peuvent être déclenchées depuis
     // l'un ou l'autre espace tant qu'aucun backend ne cible directement le
