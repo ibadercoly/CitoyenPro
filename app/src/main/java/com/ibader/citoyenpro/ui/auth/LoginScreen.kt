@@ -70,6 +70,9 @@ fun LoginScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        AuthLogo()
+        Spacer(Modifier.height(24.dp))
+
         Text(text = "Connexion", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Text(
