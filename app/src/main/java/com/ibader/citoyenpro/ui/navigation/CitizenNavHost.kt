@@ -25,13 +25,15 @@ import androidx.navigation.navArgument
 import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
+import com.ibader.citoyenpro.data.repository.IncidentVoteRepository
 import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
-import com.ibader.citoyenpro.ui.citizen.CitizenHomeScreen
-import com.ibader.citoyenpro.ui.citizen.CitizenProfileScreen
+import com.ibader.citoyenpro.ui.citizen.CitizenHomeRoute
+import com.ibader.citoyenpro.ui.citizen.CitizenProfileRoute
 import com.ibader.citoyenpro.ui.citizen.CreateIncidentRoute
 import com.ibader.citoyenpro.ui.citizen.IncidentDetailRoute
 import com.ibader.citoyenpro.ui.citizen.MyIncidentsRoute
+import com.ibader.citoyenpro.ui.citizen.PublicIncidentsRoute
 import com.ibader.citoyenpro.ui.common.SyncStatusIndicator
 
 private const val CREATE_INCIDENT_ROUTE = "citizen_create_incident"
@@ -42,7 +44,7 @@ private const val INCIDENT_ID_ARG = "incidentId"
 // standard entre deux entrées du même NavHost).
 private const val INCIDENT_CREATED_KEY = "incident_created"
 
-// Espace citoyen : barre de navigation basse (Accueil / Mes signalements / Profil)
+// Espace citoyen : barre de navigation basse (Accueil / Mes signalements / Communauté / Profil)
 // et bouton de déconnexion, au-dessus d'un NavHost imbriqué pour les onglets.
 // L'écran de création de signalement est empilé par-dessus les onglets (pas
 // un onglet lui-même) : il garde sa propre barre supérieure avec retour.
@@ -52,6 +54,7 @@ fun CitizenNavHost(
     onLogout: () -> Unit,
     incidentRepository: IncidentRepository,
     incidentStatusHistoryRepository: IncidentStatusHistoryRepository,
+    incidentVoteRepository: IncidentVoteRepository,
     categoryRepository: CategoryRepository,
     userRepository: UserRepository,
     locationRepository: LocationRepository,
@@ -104,7 +107,17 @@ fun CitizenNavHost(
             startDestination = CitizenDestination.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(CitizenDestination.Home.route) { CitizenHomeScreen() }
+            composable(CitizenDestination.Home.route) {
+                CitizenHomeRoute(
+                    incidentRepository = incidentRepository,
+                    categoryRepository = categoryRepository,
+                    userRepository = userRepository,
+                    onCreateIncidentClick = { tabNavController.navigate(CREATE_INCIDENT_ROUTE) },
+                    onIncidentClick = { incidentId ->
+                        tabNavController.navigate("$INCIDENT_DETAIL_ROUTE/$incidentId")
+                    }
+                )
+            }
             composable(CitizenDestination.Reports.route) { backStackEntry ->
                 val incidentCreated by backStackEntry.savedStateHandle
                     .getStateFlow(INCIDENT_CREATED_KEY, false)
@@ -122,7 +135,23 @@ fun CitizenNavHost(
                     }
                 )
             }
-            composable(CitizenDestination.Profile.route) { CitizenProfileScreen() }
+            composable(CitizenDestination.Community.route) {
+                PublicIncidentsRoute(
+                    incidentRepository = incidentRepository,
+                    categoryRepository = categoryRepository,
+                    incidentVoteRepository = incidentVoteRepository,
+                    userRepository = userRepository,
+                    onIncidentClick = { incidentId ->
+                        tabNavController.navigate("$INCIDENT_DETAIL_ROUTE/$incidentId")
+                    }
+                )
+            }
+            composable(CitizenDestination.Profile.route) {
+                CitizenProfileRoute(
+                    incidentRepository = incidentRepository,
+                    userRepository = userRepository
+                )
+            }
             composable(CREATE_INCIDENT_ROUTE) {
                 CreateIncidentRoute(
                     incidentRepository = incidentRepository,

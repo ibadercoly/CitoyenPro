@@ -10,11 +10,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ibader.citoyenpro.data.local.dao.CategoryDao
 import com.ibader.citoyenpro.data.local.dao.IncidentDao
 import com.ibader.citoyenpro.data.local.dao.IncidentStatusHistoryDao
+import com.ibader.citoyenpro.data.local.dao.IncidentVoteDao
 import com.ibader.citoyenpro.data.local.dao.PendingIncidentOperationDao
 import com.ibader.citoyenpro.data.local.dao.UserDao
 import com.ibader.citoyenpro.data.local.entities.CategoryEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentStatusHistoryEntity
+import com.ibader.citoyenpro.data.local.entities.IncidentVoteEntity
 import com.ibader.citoyenpro.data.local.entities.PendingIncidentOperationEntity
 import com.ibader.citoyenpro.data.local.entities.UserEntity
 import com.ibader.citoyenpro.domain.model.UserRole
@@ -30,9 +32,10 @@ import kotlinx.coroutines.launch
         CategoryEntity::class,
         IncidentEntity::class,
         IncidentStatusHistoryEntity::class,
-        PendingIncidentOperationEntity::class
+        PendingIncidentOperationEntity::class,
+        IncidentVoteEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -43,6 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun incidentDao(): IncidentDao
     abstract fun incidentStatusHistoryDao(): IncidentStatusHistoryDao
     abstract fun pendingIncidentOperationDao(): PendingIncidentOperationDao
+    abstract fun incidentVoteDao(): IncidentVoteDao
 
     companion object {
         private const val DATABASE_NAME = "citoyenpro.db"
@@ -97,6 +101,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Ajout du vote citoyen (table + compteur de points sur l'utilisateur) ;
+        // les tables existantes ne sont pas affectées, aucune perte de données.
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `users` ADD COLUMN `points` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `incident_votes` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `incidentId` INTEGER NOT NULL,
+                        `citoyenId` INTEGER NOT NULL,
+                        `dateVote` INTEGER NOT NULL,
+                        FOREIGN KEY(`incidentId`) REFERENCES `incidents`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`citoyenId`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_incident_votes_incidentId_citoyenId` " +
+                        "ON `incident_votes` (`incidentId`, `citoyenId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_incident_votes_citoyenId` ON `incident_votes` (`citoyenId`)"
+                )
+            }
+        }
+
         private val defaultCategories = listOf(
             CategoryEntity(nom = "Voirie", description = "Chaussées, trottoirs et signalisation routière endommagés"),
             CategoryEntity(nom = "Éclairage public", description = "Lampadaires en panne ou éclairage défectueux"),
@@ -116,7 +147,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(SeedCallback())
                 .build()
 

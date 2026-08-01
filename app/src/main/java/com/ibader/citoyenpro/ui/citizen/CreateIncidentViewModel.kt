@@ -12,6 +12,7 @@ import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
+import com.ibader.citoyenpro.domain.model.CitizenPointsRules
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -129,6 +130,7 @@ class CreateIncidentViewModel(
                         date = now
                     )
                 )
+                userRepository.addPoints(citoyen.id, CitizenPointsRules.NOUVEAU_SIGNALEMENT)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, isSubmitSuccessful = true) }
             }.onFailure { error ->

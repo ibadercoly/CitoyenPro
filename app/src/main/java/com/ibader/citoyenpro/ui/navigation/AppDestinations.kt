@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -19,11 +20,12 @@ object AppRoute {
 // Onglets de la barre de navigation basse de l'espace citoyen.
 sealed class CitizenDestination(val route: String, val label: String, val icon: ImageVector) {
     object Home : CitizenDestination("citizen_home", "Accueil", Icons.Filled.Home)
-    object Reports : CitizenDestination("citizen_reports", "Mes signalements", Icons.AutoMirrored.Filled.List)
+    object Reports : CitizenDestination("citizen_reports", "Signalements", Icons.AutoMirrored.Filled.List)
+    object Community : CitizenDestination("citizen_community", "Communauté", Icons.Filled.ThumbUp)
     object Profile : CitizenDestination("citizen_profile", "Profil", Icons.Filled.Person)
 
     companion object {
-        val items = listOf(Home, Reports, Profile)
+        val items = listOf(Home, Reports, Community, Profile)
     }
 }
 

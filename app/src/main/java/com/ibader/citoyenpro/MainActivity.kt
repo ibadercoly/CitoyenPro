@@ -10,6 +10,7 @@ import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentUpdateService
+import com.ibader.citoyenpro.data.repository.IncidentVoteRepository
 import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.data.sync.IncidentSyncWorker
@@ -45,13 +46,15 @@ class MainActivity : ComponentActivity() {
             networkMonitor = NetworkMonitor(applicationContext)
         )
         val incidentStatusHistoryRepository = IncidentStatusHistoryRepository(database.incidentStatusHistoryDao())
+        val incidentVoteRepository = IncidentVoteRepository(database.incidentVoteDao())
         val categoryRepository = CategoryRepository(database.categoryDao())
         val locationRepository = LocationRepository(applicationContext)
         val incidentStatusNotifier = IncidentStatusNotifier(applicationContext)
         val incidentUpdateService = IncidentUpdateService(
             incidentRepository,
             incidentStatusHistoryRepository,
-            incidentStatusNotifier
+            incidentStatusNotifier,
+            userRepository
         )
 
         // Synchro auto : rejoue dès que le réseau revient (ConnectivitySyncTrigger)
@@ -66,6 +69,7 @@ class MainActivity : ComponentActivity() {
                     userRepository = userRepository,
                     incidentRepository = incidentRepository,
                     incidentStatusHistoryRepository = incidentStatusHistoryRepository,
+                    incidentVoteRepository = incidentVoteRepository,
                     incidentUpdateService = incidentUpdateService,
                     categoryRepository = categoryRepository,
                     locationRepository = locationRepository

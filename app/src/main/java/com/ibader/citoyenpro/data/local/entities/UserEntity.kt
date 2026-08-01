@@ -17,5 +17,6 @@ data class UserEntity(
     val email: String,
     @ColumnInfo(name = "mot_de_passe_hash")
     val motDePasseHash: String,
-    val role: UserRole
+    val role: UserRole,
+    val points: Int = 0
 )

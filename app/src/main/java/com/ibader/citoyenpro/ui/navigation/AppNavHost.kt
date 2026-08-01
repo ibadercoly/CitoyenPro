@@ -18,6 +18,7 @@ import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentUpdateService
+import com.ibader.citoyenpro.data.repository.IncidentVoteRepository
 import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.UserRole
@@ -35,6 +36,7 @@ fun AppNavHost(
     userRepository: UserRepository,
     incidentRepository: IncidentRepository,
     incidentStatusHistoryRepository: IncidentStatusHistoryRepository,
+    incidentVoteRepository: IncidentVoteRepository,
     incidentUpdateService: IncidentUpdateService,
     categoryRepository: CategoryRepository,
     locationRepository: LocationRepository,
@@ -104,6 +106,7 @@ fun AppNavHost(
                 onLogout = userRepository::logout,
                 incidentRepository = incidentRepository,
                 incidentStatusHistoryRepository = incidentStatusHistoryRepository,
+                incidentVoteRepository = incidentVoteRepository,
                 categoryRepository = categoryRepository,
                 userRepository = userRepository,
                 locationRepository = locationRepository

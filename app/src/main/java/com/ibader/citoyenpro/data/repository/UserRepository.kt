@@ -62,4 +62,16 @@ class UserRepository(
     fun logout() {
         _currentUser.value = null
     }
+
+    // Met à jour la session en cours si le citoyen crédité est celui
+    // actuellement connecté, pour que l'UI (profil, badges) réagisse tout de
+    // suite sans attendre une relecture explicite de Room.
+    suspend fun addPoints(userId: Long, amount: Int) {
+        val user = userDao.getById(userId) ?: return
+        val updated = user.copy(points = user.points + amount)
+        userDao.update(updated)
+        if (_currentUser.value?.id == userId) {
+            _currentUser.value = updated
+        }
+    }
 }
