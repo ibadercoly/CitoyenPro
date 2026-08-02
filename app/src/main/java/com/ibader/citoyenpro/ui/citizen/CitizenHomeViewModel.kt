@@ -32,7 +32,7 @@ class CitizenHomeViewModel(
             MutableStateFlow(CitizenHomeUiState(isLoading = false))
         } else {
             combine(
-                incidentRepository.getByCitoyen(currentUser.id),
+                incidentRepository.getByCitoyen(currentUser.firebaseUid),
                 categoryRepository.getAll()
             ) { incidents, categories ->
                 CitizenHomeUiState(

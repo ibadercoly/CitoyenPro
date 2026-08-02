@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +36,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,6 +66,12 @@ import com.ibader.citoyenpro.data.repository.LocationRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppPrimaryButton
+import com.ibader.citoyenpro.ui.common.AppTextField
+import com.ibader.citoyenpro.ui.common.AppTextFieldShape
+import com.ibader.citoyenpro.ui.common.AppTopBar
+import com.ibader.citoyenpro.ui.common.appTextFieldColors
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import com.ibader.citoyenpro.util.createImageCaptureUri
 
@@ -126,19 +131,20 @@ fun CreateIncidentScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Signaler un incident") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+    AppBackground(modifier = modifier) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                AppTopBar(
+                    title = "Signaler un incident",
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        }
                     }
-                }
-            )
-        }
-    ) { innerPadding ->
+                )
+            }
+        ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -147,26 +153,24 @@ fun CreateIncidentScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = uiState.titre,
                 onValueChange = onTitreChange,
-                label = { Text("Titre") },
-                singleLine = true,
-                isError = uiState.titreError != null,
-                supportingText = { uiState.titreError?.let { Text(it) } },
+                label = "Titre",
                 enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                isError = uiState.titreError != null,
+                errorText = uiState.titreError
             )
 
-            OutlinedTextField(
+            AppTextField(
                 value = uiState.description,
                 onValueChange = onDescriptionChange,
-                label = { Text("Description") },
-                minLines = 4,
-                isError = uiState.descriptionError != null,
-                supportingText = { uiState.descriptionError?.let { Text(it) } },
+                label = "Description",
                 enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                isError = uiState.descriptionError != null,
+                errorText = uiState.descriptionError,
+                singleLine = false,
+                minLines = 4
             )
 
             CategoryDropdown(
@@ -219,21 +223,13 @@ fun CreateIncidentScreen(
                 )
             }
 
-            Button(
-                onClick = onSubmitClick,
+            AppPrimaryButton(
+                text = "Envoyer le signalement",
+                isLoading = uiState.isLoading,
                 enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Envoyer le signalement")
-                }
-            }
+                onClick = onSubmitClick
+            )
+        }
         }
     }
 }
@@ -263,6 +259,8 @@ private fun CategoryDropdown(
             isError = categoryError != null,
             supportingText = { categoryError?.let { Text(it) } },
             enabled = enabled,
+            shape = AppTextFieldShape,
+            colors = appTextFieldColors(),
             modifier = Modifier
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth()

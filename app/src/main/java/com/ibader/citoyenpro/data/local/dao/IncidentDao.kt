@@ -37,8 +37,8 @@ interface IncidentDao {
     @Query("SELECT * FROM incidents ORDER BY date_creation DESC")
     fun getAll(): Flow<List<IncidentEntity>>
 
-    @Query("SELECT * FROM incidents WHERE citoyenId = :citoyenId ORDER BY date_creation DESC")
-    fun getByCitoyen(citoyenId: Long): Flow<List<IncidentEntity>>
+    @Query("SELECT * FROM incidents WHERE citoyenUid = :citoyenUid ORDER BY date_creation DESC")
+    fun getByCitoyen(citoyenUid: String): Flow<List<IncidentEntity>>
 
     @Query("SELECT * FROM incidents WHERE status = :status ORDER BY date_creation DESC")
     fun getByStatus(status: IncidentStatus): Flow<List<IncidentEntity>>

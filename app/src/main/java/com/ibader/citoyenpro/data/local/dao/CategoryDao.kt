@@ -3,6 +3,7 @@ package com.ibader.citoyenpro.data.local.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.ibader.citoyenpro.data.local.entities.CategoryEntity
@@ -16,6 +17,12 @@ interface CategoryDao {
 
     @Update
     suspend fun update(category: CategoryEntity)
+
+    // Insertion ou remplacement par id : utilisé pour fusionner les
+    // catégories reçues de l'API dans Room (CategoryRepository.syncFromRemote),
+    // où l'id distant doit être pris tel quel plutôt que ré-autogénéré.
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(category: CategoryEntity)
 
     @Delete
     suspend fun delete(category: CategoryEntity)

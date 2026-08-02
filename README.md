@@ -72,41 +72,6 @@ framework d'injection de dépendances : les repositories et services sont
 construits une seule fois dans `MainActivity.onCreate()` puis transmis en
 paramètres à travers l'arbre Compose.
 
-```mermaid
-graph TD
-    subgraph UI["UI — Jetpack Compose"]
-        Screen["Screen (Composable)"]
-        UiState["UiState (data class)"]
-    end
-
-    subgraph VM["ViewModel"]
-        ViewModel["ViewModel<br/>expose UiState en StateFlow"]
-    end
-
-    subgraph Domain["Domaine"]
-        Model["Modèles métier<br/>IncidentStatus, UserRole, Priority, Badge"]
-    end
-
-    subgraph Data["Données"]
-        Repo["Repository<br/>source de vérité unique"]
-        Room[("Room / SQLite<br/>persistance locale")]
-        Retrofit["Retrofit<br/>API REST distante"]
-        Firebase[("Firebase<br/>Authentication + Cloud Messaging")]
-        Sync["WorkManager<br/>synchronisation en tâche de fond"]
-    end
-
-    Screen -- "collecte (StateFlow)" --> UiState
-    UiState -- "affichée par" --> Screen
-    Screen -- "événements utilisateur" --> ViewModel
-    ViewModel -- "met à jour" --> UiState
-    ViewModel -- "appelle" --> Repo
-    Repo -.-> Model
-    Repo --> Room
-    Repo --> Retrofit
-    Repo --> Firebase
-    Sync --> Repo
-```
-
 - **UI (`ui/`)** : un écran = un trio `Screen` (Composable, sans logique
   métier) + `UiState` (état immuable affiché) + `ViewModel` (expose l'état en
   `StateFlow`, réagit aux événements utilisateur). Regroupés par espace :

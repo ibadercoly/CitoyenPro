@@ -4,6 +4,7 @@ import com.ibader.citoyenpro.data.local.entities.IncidentEntity
 import com.ibader.citoyenpro.data.remote.dto.IncidentDto
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
+import java.time.Instant
 
 fun IncidentDto.toEntity(): IncidentEntity = IncidentEntity(
     id = id ?: 0L,
@@ -16,10 +17,10 @@ fun IncidentDto.toEntity(): IncidentEntity = IncidentEntity(
     latitude = latitude,
     longitude = longitude,
     adresse = adresse,
-    citoyenId = citoyenId,
+    citoyenUid = citoyenUid,
     serviceAffecte = serviceAffecte,
-    dateCreation = dateCreation,
-    dateMaj = dateMaj
+    dateCreation = Instant.parse(dateCreation).toEpochMilli(),
+    dateMaj = Instant.parse(dateMaj).toEpochMilli()
 )
 
 // id = 0L (auto-généré, pas encore inséré en local) ne correspond à aucun id
@@ -35,8 +36,8 @@ fun IncidentEntity.toDto(): IncidentDto = IncidentDto(
     latitude = latitude,
     longitude = longitude,
     adresse = adresse,
-    citoyenId = citoyenId,
+    citoyenUid = citoyenUid,
     serviceAffecte = serviceAffecte,
-    dateCreation = dateCreation,
-    dateMaj = dateMaj
+    dateCreation = Instant.ofEpochMilli(dateCreation).toString(),
+    dateMaj = Instant.ofEpochMilli(dateMaj).toString()
 )

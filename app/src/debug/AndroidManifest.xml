@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fusionné uniquement dans le build debug (manifest merger de Gradle) :
+     autorise le trafic HTTP non chiffré pour joindre le backend de
+     développement local (cf. BuildConfig.API_BASE_URL, RetrofitClient), qui
+     tourne en http:// sur le réseau Wi-Fi local. Le build release n'inclut
+     pas ce fichier et conserve le comportement par défaut (cleartext refusé
+     depuis l'API 28). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:usesCleartextTraffic="true" />
+
+</manifest>

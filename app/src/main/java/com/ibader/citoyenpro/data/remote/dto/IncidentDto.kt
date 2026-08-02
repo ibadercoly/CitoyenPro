@@ -1,24 +1,27 @@
 package com.ibader.citoyenpro.data.remote.dto
 
-import com.google.gson.annotations.SerializedName
-
-// photoUrl (URL distante après upload) plutôt que photoUri (chemin local
-// content:// utilisé par IncidentEntity côté Room) : les deux représentent la
-// photo du signalement mais aucune valeur n'est réutilisable telle quelle
-// pour l'autre source, d'où le renommage explicite entre DTO et entité.
+// Reflète exactement le JSON renvoyé par le backend (Prisma sérialise ses
+// champs tels que déclarés dans le schéma, en camelCase — pas de snake_case,
+// donc aucun @SerializedName n'est nécessaire ici). photoUrl (URL distante
+// après upload) plutôt que photoUri (chemin local content:// utilisé par
+// IncidentEntity côté Room) : les deux représentent la photo du signalement
+// mais aucune valeur n'est réutilisable telle quelle pour l'autre source,
+// d'où le renommage explicite entre DTO et entité. citoyenUid identifie
+// l'auteur par son uid Firebase, jamais par un id numérique. dateCreation/
+// dateMaj sont des dates ISO-8601 (sérialisation Prisma), pas des epoch millis.
 data class IncidentDto(
     val id: Long?,
     val titre: String,
     val description: String,
-    @SerializedName("category_id") val categoryId: Long,
+    val categoryId: Long,
     val priority: String,
     val status: String,
-    @SerializedName("photo_url") val photoUrl: String?,
+    val photoUrl: String?,
     val latitude: Double,
     val longitude: Double,
     val adresse: String,
-    @SerializedName("citoyen_id") val citoyenId: Long,
-    @SerializedName("service_affecte") val serviceAffecte: String?,
-    @SerializedName("date_creation") val dateCreation: Long,
-    @SerializedName("date_maj") val dateMaj: Long
+    val citoyenUid: String,
+    val serviceAffecte: String?,
+    val dateCreation: String,
+    val dateMaj: String
 )

@@ -1,16 +1,12 @@
 package com.ibader.citoyenpro.data.remote
 
 import com.google.gson.GsonBuilder
+import com.ibader.citoyenpro.BuildConfig
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
-// Backend pas encore déployé : URL de développement local (10.0.2.2 = hôte
-// machine vu depuis l'émulateur Android) à remplacer par l'URL de production
-// le moment venu.
-private const val BASE_URL = "http://10.0.2.2:8080/api/"
 
 // Point d'entrée unique vers ApiService : construit paresseusement un client
 // OkHttp (auth + logs) et un Retrofit (Gson) une seule fois, comme
@@ -46,7 +42,7 @@ object RetrofitClient {
         val gson = GsonBuilder().create()
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

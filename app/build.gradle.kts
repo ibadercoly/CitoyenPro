@@ -20,6 +20,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Backend de dev joint via USB (adb reverse tcp:3000 tcp:3000) plutôt
+        // que par IP Wi-Fi : le Wi-Fi local isole les appareils entre eux sur
+        // les réseaux testés jusqu'ici (connexion refusée/impossible entre
+        // téléphone et PC malgré même sous-réseau et pare-feu correctement
+        // configuré). Nécessite de relancer `adb reverse tcp:3000 tcp:3000`
+        // à chaque nouvelle session de débogage (la redirection ne survit pas
+        // à un débranchement/reboot). Seul endroit où l'URL est définie, lue
+        // via BuildConfig.API_BASE_URL (cf. RetrofitClient) plutôt que
+        // dupliquée en dur.
+        buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:3000/\"")
     }
 
     buildTypes {
@@ -35,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -54,6 +66,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)

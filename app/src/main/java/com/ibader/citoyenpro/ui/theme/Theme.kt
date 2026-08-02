@@ -10,6 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 
 private val LightColorScheme = lightColorScheme(
     primary = CivicBlue40,
@@ -89,9 +90,20 @@ fun CitoyenProTheme(
         else -> LightColorScheme
     }
 
+    // Hiérarchie de titres centralisée : tous les titres d'écran/section
+    // (Text(style = MaterialTheme.typography.headlineX)) héritent du bleu
+    // primary en gras directement depuis le thème, sans que chaque écran
+    // n'ait à repasser color = colorScheme.primary. Un seul endroit à changer
+    // pour faire évoluer la charte des titres sur toute l'app.
+    val typography = Typography.copy(
+        headlineLarge = Typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = colorScheme.primary),
+        headlineMedium = Typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = colorScheme.primary),
+        headlineSmall = Typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = colorScheme.primary)
+    )
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = typography,
         shapes = CitoyenProShapes,
         content = content
     )

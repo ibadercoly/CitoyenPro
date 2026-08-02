@@ -6,7 +6,9 @@ import com.ibader.citoyenpro.data.remote.dto.CategoryDto
 fun CategoryDto.toEntity(): CategoryEntity = CategoryEntity(
     id = id ?: 0L,
     nom = nom,
-    description = description
+    // Le backend autorise une description absente ; Room exige une valeur
+    // non nulle sur cette colonne.
+    description = description ?: ""
 )
 
 // id = 0L (auto-généré, pas encore inséré en local) ne correspond à aucun id

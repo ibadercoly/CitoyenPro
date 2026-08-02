@@ -15,14 +15,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,12 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ibader.citoyenpro.data.local.entities.CategoryEntity
 import com.ibader.citoyenpro.data.repository.CategoryRepository
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppCard
+import com.ibader.citoyenpro.ui.common.AppTextField
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 
 // Composable "route" : instancie l'AdminCategoriesViewModel et lui délègue la
@@ -82,40 +84,42 @@ fun AdminCategoriesScreen(
     onErrorDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier,
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
-                Icon(Icons.Filled.Add, contentDescription = "Ajouter une catégorie")
+    AppBackground(modifier = modifier) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            floatingActionButton = {
+                FloatingActionButton(onClick = onAddClick) {
+                    Icon(Icons.Filled.Add, contentDescription = "Ajouter une catégorie")
+                }
             }
-        }
-    ) { innerPadding ->
-        when {
-            uiState.isLoading -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+        ) { innerPadding ->
+            when {
+                uiState.isLoading -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
 
-            uiState.categories.isEmpty() -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "Aucune catégorie pour l'instant.", style = MaterialTheme.typography.bodyLarge)
-            }
+                uiState.categories.isEmpty() -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Aucune catégorie pour l'instant.", style = MaterialTheme.typography.bodyLarge)
+                }
 
-            else -> LazyColumn(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.categories, key = { it.id }) { category ->
-                    CategoryRow(
-                        category = category,
-                        onEditClick = { onEditClick(category) },
-                        onDeleteClick = { onDeleteClick(category) }
-                    )
+                else -> LazyColumn(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.categories, key = { it.id }) { category ->
+                        CategoryRow(
+                            category = category,
+                            onEditClick = { onEditClick(category) },
+                            onDeleteClick = { onDeleteClick(category) }
+                        )
+                    }
                 }
             }
         }
@@ -158,9 +162,9 @@ private fun CategoryRow(
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -200,18 +204,18 @@ private fun CategoryFormDialog(
         title = { Text(if (form.id == null) "Nouvelle catégorie" else "Modifier la catégorie") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                AppTextField(
                     value = form.nom,
                     onValueChange = onNomChanged,
-                    label = { Text("Nom") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Nom",
+                    enabled = true
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = form.description,
                     onValueChange = onDescriptionChanged,
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Description",
+                    enabled = true,
+                    singleLine = false
                 )
             }
         },

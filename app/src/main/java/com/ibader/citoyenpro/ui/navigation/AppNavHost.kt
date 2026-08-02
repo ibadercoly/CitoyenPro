@@ -61,6 +61,7 @@ fun AppNavHost(
         // process, avant de tenter de rejouer les opérations en attente.
         userRepository.restoreSession()
         incidentRepository.syncPendingChanges()
+        categoryRepository.syncFromRemote()
     }
 
     // Demandée dès qu'une session est ouverte (citoyen ou admin) : les

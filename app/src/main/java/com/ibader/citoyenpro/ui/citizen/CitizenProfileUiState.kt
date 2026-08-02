@@ -7,5 +7,6 @@ data class CitizenProfileUiState(
     val nom: String = "",
     val email: String = "",
     val role: UserRole = UserRole.CITOYEN,
-    val totalIncidents: Int = 0
+    val totalIncidents: Int = 0,
+    val points: Int = 0
 )

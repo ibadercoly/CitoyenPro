@@ -1,6 +1,5 @@
 package com.ibader.citoyenpro.ui.admin
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -33,6 +31,8 @@ import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppCard
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import java.text.SimpleDateFormat
@@ -78,36 +78,38 @@ fun AdminIncidentsScreen(
     onIncidentClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        AdminIncidentsFiltersSection(
-            categories = uiState.categories,
-            filters = uiState.filters,
-            onStatusFilterSelected = onStatusFilterSelected,
-            onCategoryFilterSelected = onCategoryFilterSelected,
-            onPriorityFilterSelected = onPriorityFilterSelected,
-            onSortOrderSelected = onSortOrderSelected
-        )
-        HorizontalDivider()
+    AppBackground(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            AdminIncidentsFiltersSection(
+                categories = uiState.categories,
+                filters = uiState.filters,
+                onStatusFilterSelected = onStatusFilterSelected,
+                onCategoryFilterSelected = onCategoryFilterSelected,
+                onPriorityFilterSelected = onPriorityFilterSelected,
+                onSortOrderSelected = onSortOrderSelected
+            )
+            HorizontalDivider()
 
-        when {
-            uiState.isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            when {
+                uiState.isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-            uiState.items.isEmpty() -> Box(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "Aucun signalement ne correspond à ces filtres.", style = MaterialTheme.typography.bodyLarge)
-            }
+                uiState.items.isEmpty() -> Box(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Aucun signalement ne correspond à ces filtres.", style = MaterialTheme.typography.bodyLarge)
+                }
 
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.items, key = { it.id }) { item ->
-                    AdminIncidentRow(item = item, onClick = { onIncidentClick(item.id) })
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.items, key = { it.id }) { item ->
+                        AdminIncidentRow(item = item, onClick = { onIncidentClick(item.id) })
+                    }
                 }
             }
         }
@@ -209,25 +211,24 @@ private fun FilterRow(label: String, modifier: Modifier = Modifier, content: @Co
 
 @Composable
 private fun AdminIncidentRow(item: AdminIncidentListItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    AppCard(
+        onClick = onClick,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                IncidentStatusBadge(status = item.status)
-            }
-            Text(
-                text = "${item.categoryNom} · Priorité ${item.priority.libelle()} · ${dateFormat.format(item.dateCreation)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IncidentStatusBadge(status = item.status)
         }
+        Text(
+            text = "${item.categoryNom} · Priorité ${item.priority.libelle()} · ${dateFormat.format(item.dateCreation)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

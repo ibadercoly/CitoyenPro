@@ -1,9 +1,7 @@
 package com.ibader.citoyenpro.ui.citizen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +31,8 @@ import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppCard
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import java.text.SimpleDateFormat
@@ -79,29 +78,34 @@ fun PublicIncidentsScreen(
     onIncidentClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    when {
-        uiState.isLoading -> Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    if (uiState.isLoading) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
+        return
+    }
 
-        uiState.items.isEmpty() -> Box(
-            modifier = modifier.fillMaxSize().padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Aucun signalement pour l'instant.", style = MaterialTheme.typography.bodyLarge)
-        }
-
-        else -> LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(uiState.items, key = { it.id }) { item ->
-                PublicIncidentRow(
-                    item = item,
-                    onClick = { onIncidentClick(item.id) },
-                    onSupportClick = { onSupportClick(item.id) }
-                )
+    AppBackground(modifier = modifier) {
+        if (uiState.items.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Aucun signalement pour l'instant.", style = MaterialTheme.typography.bodyLarge)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.items, key = { it.id }) { item ->
+                    PublicIncidentRow(
+                        item = item,
+                        onClick = { onIncidentClick(item.id) },
+                        onSupportClick = { onSupportClick(item.id) }
+                    )
+                }
             }
         }
     }
@@ -114,41 +118,40 @@ private fun PublicIncidentRow(
     onSupportClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    AppCard(
+        onClick = onClick,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                IncidentStatusBadge(status = item.status)
-            }
+            Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IncidentStatusBadge(status = item.status)
+        }
+        Text(
+            text = "${item.categoryNom} · Priorité ${item.priority.libelle()} · ${dateFormat.format(item.dateCreation)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "${item.categoryNom} · Priorité ${item.priority.libelle()} · ${dateFormat.format(item.dateCreation)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = if (item.voteCount <= 1) "${item.voteCount} soutien" else "${item.voteCount} soutiens",
+                style = MaterialTheme.typography.bodyMedium
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (item.voteCount <= 1) "${item.voteCount} soutien" else "${item.voteCount} soutiens",
-                    style = MaterialTheme.typography.bodyMedium
+            OutlinedButton(onClick = onSupportClick, enabled = !item.hasVoted) {
+                Icon(
+                    Icons.Filled.ThumbUp,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
                 )
-                OutlinedButton(onClick = onSupportClick, enabled = !item.hasVoted) {
-                    Icon(
-                        Icons.Filled.ThumbUp,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    Text(if (item.hasVoted) "Soutenu" else "Soutenir")
-                }
+                Text(if (item.hasVoted) "Soutenu" else "Soutenir")
             }
         }
     }

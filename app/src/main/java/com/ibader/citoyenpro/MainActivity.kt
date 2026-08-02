@@ -38,7 +38,11 @@ class MainActivity : ComponentActivity() {
         }
 
         val database = AppDatabase.getInstance(applicationContext)
-        val userRepository = UserRepository(database.userDao())
+        val userRepository = UserRepository(
+            userDao = database.userDao(),
+            apiService = RetrofitClient.getApiService(),
+            authTokenProvider = RetrofitClient.authTokenProvider
+        )
         val incidentRepository = IncidentRepository(
             incidentDao = database.incidentDao(),
             pendingOperationDao = database.pendingIncidentOperationDao(),
@@ -47,7 +51,7 @@ class MainActivity : ComponentActivity() {
         )
         val incidentStatusHistoryRepository = IncidentStatusHistoryRepository(database.incidentStatusHistoryDao())
         val incidentVoteRepository = IncidentVoteRepository(database.incidentVoteDao())
-        val categoryRepository = CategoryRepository(database.categoryDao())
+        val categoryRepository = CategoryRepository(database.categoryDao(), RetrofitClient.getApiService())
         val locationRepository = LocationRepository(applicationContext)
         val incidentStatusNotifier = IncidentStatusNotifier(applicationContext)
         val incidentUpdateService = IncidentUpdateService(

@@ -24,14 +24,15 @@ class CitizenProfileViewModel(
         if (currentUser == null) {
             MutableStateFlow(CitizenProfileUiState(isLoading = false))
         } else {
-            incidentRepository.getByCitoyen(currentUser.id)
+            incidentRepository.getByCitoyen(currentUser.firebaseUid)
                 .map { incidents ->
                     CitizenProfileUiState(
                         isLoading = false,
                         nom = currentUser.nom,
                         email = currentUser.email,
                         role = currentUser.role,
-                        totalIncidents = incidents.size
+                        totalIncidents = incidents.size,
+                        points = currentUser.points
                     )
                 }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CitizenProfileUiState())

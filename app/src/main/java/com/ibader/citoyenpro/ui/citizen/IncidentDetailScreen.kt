@@ -21,7 +21,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -29,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -46,6 +46,8 @@ import com.ibader.citoyenpro.data.repository.IncidentStatusHistoryRepository
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppTopBar
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import java.text.SimpleDateFormat
@@ -94,104 +96,106 @@ fun IncidentDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Détail du signalement") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+    AppBackground(modifier = modifier) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                AppTopBar(
+                    title = "Détail du signalement",
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        }
                     }
-                }
-            )
-        }
-    ) { innerPadding ->
-        val incident = uiState.incident
-
-        when {
-            uiState.isLoading -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+                )
             }
+        ) { innerPadding ->
+            val incident = uiState.incident
 
-            incident == null -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "Signalement introuvable", style = MaterialTheme.typography.bodyLarge)
-            }
-
-            else -> Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                incident.photoUri?.let { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Photo du signalement",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
+            when {
+                uiState.isLoading -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = incident.titre, style = MaterialTheme.typography.headlineSmall)
-                        IncidentStatusBadge(status = incident.status)
+                incident == null -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Signalement introuvable", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                else -> Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    incident.photoUri?.let { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Photo du signalement",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
                     }
-                    Text(
-                        text = "${uiState.categoryNom} · Priorité ${incident.priority.libelle()}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
 
-                Text(text = incident.description, style = MaterialTheme.typography.bodyLarge)
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "Position", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = incident.adresse.ifBlank {
-                            "Lat : %.5f, Lng : %.5f".format(incident.latitude, incident.longitude)
-                        },
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    IncidentLocationMap(
-                        latitude = incident.latitude,
-                        longitude = incident.longitude,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "Historique des statuts", style = MaterialTheme.typography.titleMedium)
-                    if (uiState.history.isEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = incident.titre, style = MaterialTheme.typography.headlineSmall)
+                            IncidentStatusBadge(status = incident.status)
+                        }
                         Text(
-                            text = "Aucun changement de statut pour l'instant.",
+                            text = "${uiState.categoryNom} · Priorité ${incident.priority.libelle()}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    } else {
-                        uiState.history.forEachIndexed { index, entry ->
-                            StatusHistoryRow(entry)
-                            if (index != uiState.history.lastIndex) HorizontalDivider()
+                    }
+
+                    Text(text = incident.description, style = MaterialTheme.typography.bodyLarge)
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(text = "Position", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = incident.adresse.ifBlank {
+                                "Lat : %.5f, Lng : %.5f".format(incident.latitude, incident.longitude)
+                            },
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IncidentLocationMap(
+                            latitude = incident.latitude,
+                            longitude = incident.longitude,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(text = "Historique des statuts", style = MaterialTheme.typography.titleMedium)
+                        if (uiState.history.isEmpty()) {
+                            Text(
+                                text = "Aucun changement de statut pour l'instant.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            uiState.history.forEachIndexed { index, entry ->
+                                StatusHistoryRow(entry)
+                                if (index != uiState.history.lastIndex) HorizontalDivider()
+                            }
                         }
                     }
                 }
@@ -284,7 +288,7 @@ private fun IncidentDetailScreenPreview() {
                     latitude = 33.5731,
                     longitude = -7.5898,
                     adresse = "Boulevard Mohammed V, Casablanca",
-                    citoyenId = 1,
+                    citoyenUid = "preview-uid",
                     dateCreation = System.currentTimeMillis(),
                     dateMaj = System.currentTimeMillis()
                 ),

@@ -12,3 +12,10 @@ val CitoyenProShapes = Shapes(
     large = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(32.dp)
 )
+
+// Rayons partagés par les composants réutilisables (AppCard, AppTextField,
+// AppPrimaryButton dans ui.common) : un seul endroit à modifier pour changer
+// l'arrondi des cartes ou des champs/boutons sur toute l'app, plutôt que des
+// valeurs magiques recopiées écran par écran.
+val AppCardCornerRadius = 20.dp
+val AppControlCornerRadius = 16.dp

@@ -118,7 +118,7 @@ class CreateIncidentViewModel(
                         latitude = state.latitude ?: 0.0,
                         longitude = state.longitude ?: 0.0,
                         adresse = state.adresse,
-                        citoyenId = citoyen.id,
+                        citoyenUid = citoyen.firebaseUid,
                         dateCreation = now,
                         dateMaj = now
                     )
@@ -130,7 +130,7 @@ class CreateIncidentViewModel(
                         date = now
                     )
                 )
-                userRepository.addPoints(citoyen.id, CitizenPointsRules.NOUVEAU_SIGNALEMENT)
+                userRepository.addPoints(citoyen.firebaseUid, CitizenPointsRules.NOUVEAU_SIGNALEMENT)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, isSubmitSuccessful = true) }
             }.onFailure { error ->

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backend de dev servi en HTTP simple sur le réseau Wi-Fi local (pas de
+     certificat TLS) : Android bloque le cleartext par défaut depuis l'API 28,
+     donc cette exception est nécessaire pour que Retrofit puisse joindre
+     BuildConfig.API_BASE_URL. Scoping à cette IP précise plutôt qu'un
+     cleartextTrafficPermitted global pour ne pas relâcher la sécurité sur
+     d'éventuels autres hôtes. À retirer une fois le backend déployé en HTTPS. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 127.0.0.1 : backend joint via USB (adb reverse tcp:3000 tcp:3000),
+             indépendant du réseau Wi-Fi. Les IP LAN restent listées en secours
+             si jamais on repasse en test par Wi-Fi. -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">192.168.1.149</domain>
+        <domain includeSubdomains="false">192.168.1.151</domain>
+    </domain-config>
+</network-security-config>

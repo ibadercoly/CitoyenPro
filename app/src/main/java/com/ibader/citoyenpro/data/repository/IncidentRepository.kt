@@ -80,7 +80,7 @@ class IncidentRepository(
 
     fun getAll(): Flow<List<IncidentEntity>> = incidentDao.getAll()
 
-    fun getByCitoyen(citoyenId: Long): Flow<List<IncidentEntity>> = incidentDao.getByCitoyen(citoyenId)
+    fun getByCitoyen(citoyenUid: String): Flow<List<IncidentEntity>> = incidentDao.getByCitoyen(citoyenUid)
 
     fun getByStatus(status: IncidentStatus): Flow<List<IncidentEntity>> = incidentDao.getByStatus(status)
 

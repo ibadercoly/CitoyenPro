@@ -1,9 +1,7 @@
 package com.ibader.citoyenpro.ui.citizen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +36,8 @@ import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppCard
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import java.text.SimpleDateFormat
@@ -92,40 +92,42 @@ fun MyIncidentsScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateIncidentClick) {
-                Icon(Icons.Filled.Add, contentDescription = "Signaler un incident")
+    AppBackground(modifier = modifier) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            floatingActionButton = {
+                FloatingActionButton(onClick = onCreateIncidentClick) {
+                    Icon(Icons.Filled.Add, contentDescription = "Signaler un incident")
+                }
             }
-        }
-    ) { innerPadding ->
-        when {
-            uiState.isLoading -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+        ) { innerPadding ->
+            when {
+                uiState.isLoading -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
 
-            uiState.items.isEmpty() -> Box(
-                modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Vous n'avez encore signalé aucun incident.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+                uiState.items.isEmpty() -> Box(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Vous n'avez encore signalé aucun incident.",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
 
-            else -> LazyColumn(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.items, key = { it.id }) { item ->
-                    IncidentListRow(item = item, onClick = { onIncidentClick(item.id) })
+                else -> LazyColumn(
+                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.items, key = { it.id }) { item ->
+                        IncidentListRow(item = item, onClick = { onIncidentClick(item.id) })
+                    }
                 }
             }
         }
@@ -134,49 +136,42 @@ fun MyIncidentsScreen(
 
 @Composable
 private fun IncidentListRow(item: IncidentListItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+    AppCard(
+        onClick = onClick,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = item.titre,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                IncidentStatusBadge(status = item.status)
-            }
             Text(
-                text = item.categoryNom,
-                style = MaterialTheme.typography.bodyMedium,
+                text = item.titre,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            IncidentStatusBadge(status = item.status)
+        }
+        Text(
+            text = item.categoryNom,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Priorité : ${item.priority.libelle()}",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Priorité : ${item.priority.libelle()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = dateFormat.format(item.dateCreation),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = dateFormat.format(item.dateCreation),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

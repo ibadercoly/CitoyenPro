@@ -28,7 +28,7 @@ class IncidentUpdateService(
             )
         )
 
-        userRepository.addPoints(updated.citoyenId, CitizenPointsRules.CHANGEMENT_STATUT)
+        userRepository.addPoints(updated.citoyenUid, CitizenPointsRules.CHANGEMENT_STATUT)
         incidentStatusNotifier.notifyStatusChanged(updated, newStatus)
     }
 

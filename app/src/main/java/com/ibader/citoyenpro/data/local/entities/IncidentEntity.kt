@@ -8,6 +8,10 @@ import androidx.room.PrimaryKey
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 
+// citoyenUid identifie l'auteur par son uid Firebase (comme le backend),
+// sans clé étrangère vers `users` : l'app ne connaît pas forcément le profil
+// Room des autres citoyens (incidents reçus du serveur), qui ne stocke que le
+// citoyen actuellement connecté sur cet appareil.
 @Entity(
     tableName = "incidents",
     foreignKeys = [
@@ -16,17 +20,11 @@ import com.ibader.citoyenpro.domain.model.Priority
             parentColumns = ["id"],
             childColumns = ["categoryId"],
             onDelete = ForeignKey.RESTRICT
-        ),
-        ForeignKey(
-            entity = UserEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["citoyenId"],
-            onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
         Index(value = ["categoryId"]),
-        Index(value = ["citoyenId"]),
+        Index(value = ["citoyenUid"]),
         Index(value = ["status"])
     ]
 )
@@ -43,7 +41,7 @@ data class IncidentEntity(
     val latitude: Double,
     val longitude: Double,
     val adresse: String,
-    val citoyenId: Long,
+    val citoyenUid: String,
     @ColumnInfo(name = "service_affecte")
     val serviceAffecte: String? = null,
     @ColumnInfo(name = "date_creation")

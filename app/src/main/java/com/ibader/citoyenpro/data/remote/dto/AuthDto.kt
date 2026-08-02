@@ -1,20 +1,8 @@
 package com.ibader.citoyenpro.data.remote.dto
 
-data class LoginRequestDto(
-    val email: String,
-    val password: String
-)
-
-data class RegisterRequestDto(
-    val nom: String,
-    val email: String,
-    val password: String
-)
-
-// Le backend gère l'authentification par token (jamais de mot de passe/hash
-// dans la réponse) ; le token est conservé en mémoire côté client
-// (RetrofitClient.authTokenProvider) et rejoué sur chaque requête par AuthInterceptor.
-data class AuthResponseDto(
-    val token: String,
-    val user: UserDto
+// POST /users/sync - l'uid et l'email viennent du token Firebase vérifié côté
+// serveur ; seul le nom est utile ici, en secours si le token Firebase n'a
+// pas de "displayName" (cf. UserRepository.syncUserWithBackend).
+data class SyncUserRequestDto(
+    val nom: String?
 )

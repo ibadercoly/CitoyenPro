@@ -19,10 +19,6 @@ import com.ibader.citoyenpro.data.local.entities.IncidentStatusHistoryEntity
 import com.ibader.citoyenpro.data.local.entities.IncidentVoteEntity
 import com.ibader.citoyenpro.data.local.entities.PendingIncidentOperationEntity
 import com.ibader.citoyenpro.data.local.entities.UserEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -33,7 +29,7 @@ import kotlinx.coroutines.launch
         PendingIncidentOperationEntity::class,
         IncidentVoteEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -149,14 +145,49 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val defaultCategories = listOf(
-            CategoryEntity(nom = "Voirie", description = "Chaussées, trottoirs et signalisation routière endommagés"),
-            CategoryEntity(nom = "Éclairage public", description = "Lampadaires en panne ou éclairage défectueux"),
-            CategoryEntity(nom = "Ordures", description = "Collecte des déchets, dépôts sauvages, poubelles débordantes"),
-            CategoryEntity(nom = "Inondation", description = "Accumulation d'eau, canalisations bouchées, égouts débordants"),
-            CategoryEntity(nom = "Réseaux", description = "Pannes ou dégâts sur les réseaux d'eau, d'électricité ou de télécommunications"),
-            CategoryEntity(nom = "Sécurité", description = "Zones dangereuses, actes de vandalisme, équipements de sécurité défaillants")
-        )
+        // Alignement sur l'identité utilisée par le backend : un incident est
+        // désormais rattaché à son auteur par son uid Firebase (citoyenUid,
+        // String) plutôt qu'un id Room local (citoyenId, Long) — le backend
+        // ne connaît pas cet id local et l'app ne connaît pas forcément le
+        // profil Room des *autres* citoyens (incidents reçus du serveur), ce
+        // qui rendait l'ancienne clé étrangère vers `users` intenable dès
+        // qu'un incident d'un autre citoyen était synchronisé. Pas de
+        // conversion possible d'un id local vers un uid : la table est
+        // recréée vide, ainsi que les tables qui référencent ses lignes
+        // (mêmes données de développement, aucune perte en production
+        // puisque le backend n'a encore aucun signalement réel).
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DELETE FROM `incident_votes`")
+                db.execSQL("DELETE FROM `pending_incident_operations`")
+                db.execSQL("DELETE FROM `incident_status_history`")
+                db.execSQL("DROP TABLE IF EXISTS `incidents`")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `incidents` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `titre` TEXT NOT NULL,
+                        `description` TEXT NOT NULL,
+                        `categoryId` INTEGER NOT NULL,
+                        `priority` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `photo_uri` TEXT,
+                        `latitude` REAL NOT NULL,
+                        `longitude` REAL NOT NULL,
+                        `adresse` TEXT NOT NULL,
+                        `citoyenUid` TEXT NOT NULL,
+                        `service_affecte` TEXT,
+                        `date_creation` INTEGER NOT NULL,
+                        `date_maj` INTEGER NOT NULL,
+                        FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON DELETE RESTRICT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_incidents_categoryId` ON `incidents` (`categoryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_incidents_citoyenUid` ON `incidents` (`citoyenUid`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_incidents_status` ON `incidents` (`status`)")
+            }
+        }
 
         @Volatile
         private var instance: AppDatabase? = null
@@ -168,29 +199,16 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-                .addCallback(SeedCallback())
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
-        // Les comptes utilisateurs sont désormais créés via Firebase Authentication
-        // (inscription depuis l'app) ; seules les catégories par défaut sont
-        // encore semées ici. Pour créer le premier compte admin : inscrivez-vous
-        // normalement depuis l'app, puis passez son rôle à ADMIN en base.
-        private suspend fun seedDatabase(database: AppDatabase) {
-            database.categoryDao().let { categoryDao ->
-                defaultCategories.forEach { categoryDao.insert(it) }
-            }
-        }
-
-        private class SeedCallback : Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                instance?.let { database ->
-                    CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                        seedDatabase(database)
-                    }
-                }
-            }
-        }
+        // Les comptes utilisateurs sont créés via Firebase Authentication
+        // (inscription depuis l'app). Les catégories ne sont plus semées ici :
+        // elles viennent exclusivement du backend via
+        // CategoryRepository.syncFromRemote() (appelé au lancement, cf.
+        // AppNavHost), pour éviter un double jeu de catégories (local +
+        // serveur) avec des ids différents. Pour créer le premier compte
+        // admin : inscrivez-vous normalement depuis l'app, puis passez son
+        // rôle à ADMIN en base MySQL.
     }
 }

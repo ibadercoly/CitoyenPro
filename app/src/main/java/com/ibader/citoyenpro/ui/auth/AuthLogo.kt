@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ibader.citoyenpro.R
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
@@ -21,13 +22,13 @@ import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 // Largeur fixe (ni fillMaxWidth ni dépendante du contenu) pour garder une
 // taille raisonnable même sur un grand écran.
 @Composable
-fun AuthLogo(modifier: Modifier = Modifier) {
+fun AuthLogo(modifier: Modifier = Modifier, size: Dp = 140.dp) {
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Image(
             painter = painterResource(id = R.drawable.citoyenpro_logo),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(140.dp)
+            modifier = Modifier.width(size)
         )
     }
 }

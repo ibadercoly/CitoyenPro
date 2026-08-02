@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +35,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ibader.citoyenpro.data.repository.CategoryRepository
 import com.ibader.citoyenpro.data.repository.IncidentRepository
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.StatCounterCard
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 
 // Palette catégorielle (statut, catégorie) : 8 teintes distinctes en
@@ -82,42 +83,44 @@ fun AdminStatsScreen(uiState: AdminStatsUiState, modifier: Modifier = Modifier) 
     fun colorFor(entry: StatEntry, ramp: List<Color> = categorical): Color =
         if (entry.colorSlot < 0) neutral else ramp[entry.colorSlot % ramp.size]
 
-    when {
-        uiState.isLoading -> Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-
-        uiState.totalIncidents == 0 -> Box(
-            modifier = modifier.fillMaxSize().padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Aucun signalement pour l'instant.", style = MaterialTheme.typography.bodyLarge)
-        }
-
-        else -> Column(
-            modifier = modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Text(text = "Statistiques", style = MaterialTheme.typography.headlineSmall)
-
-            CounterRow(uiState = uiState)
-
-            HorizontalDivider()
-            StatsSection(title = "Par statut") {
-                PieWithLegend(entries = uiState.byStatus, colorFor = { colorFor(it) })
+    AppBackground(modifier = modifier) {
+        when {
+            uiState.isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
 
-            HorizontalDivider()
-            StatsSection(title = "Par catégorie") {
-                HorizontalBarList(entries = uiState.byCategory, colorFor = { colorFor(it) })
+            uiState.totalIncidents == 0 -> Box(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Aucun signalement pour l'instant.", style = MaterialTheme.typography.bodyLarge)
             }
 
-            HorizontalDivider()
-            StatsSection(title = "Par priorité") {
-                HorizontalBarList(entries = uiState.byPriority, colorFor = { colorFor(it, SequentialBlue) })
+            else -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Text(text = "Statistiques", style = MaterialTheme.typography.headlineSmall)
+
+                CounterRow(uiState = uiState)
+
+                HorizontalDivider()
+                StatsSection(title = "Par statut") {
+                    PieWithLegend(entries = uiState.byStatus, colorFor = { colorFor(it) })
+                }
+
+                HorizontalDivider()
+                StatsSection(title = "Par catégorie") {
+                    HorizontalBarList(entries = uiState.byCategory, colorFor = { colorFor(it) })
+                }
+
+                HorizontalDivider()
+                StatsSection(title = "Par priorité") {
+                    HorizontalBarList(entries = uiState.byPriority, colorFor = { colorFor(it, SequentialBlue) })
+                }
             }
         }
     }
@@ -133,30 +136,15 @@ private fun StatsSection(title: String, modifier: Modifier = Modifier, content: 
 
 // Compteurs : total et un par statut, en cartes compactes — la vue
 // d'ensemble avant le détail des graphiques.
+// Réutilise StatCounterCard (ui.common), déjà utilisée par AdminDashboardScreen
+// et CitizenHomeScreen : même carte de compteur partout plutôt qu'une
+// variante locale recopiée pour cet écran.
 @Composable
 private fun CounterRow(uiState: AdminStatsUiState, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        CounterCard(label = "Total", value = uiState.totalIncidents, modifier = Modifier.weight(1f))
+        StatCounterCard(label = "Total", value = uiState.totalIncidents, modifier = Modifier.weight(1f))
         uiState.byStatus.forEach { entry ->
-            CounterCard(label = entry.label, value = entry.count, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun CounterCard(label: String, value: Int, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(text = value.toString(), style = MaterialTheme.typography.titleLarge)
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            StatCounterCard(label = entry.label, value = entry.count, modifier = Modifier.weight(1f))
         }
     }
 }

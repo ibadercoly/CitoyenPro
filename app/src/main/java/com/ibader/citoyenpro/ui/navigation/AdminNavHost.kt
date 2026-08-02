@@ -9,7 +9,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -35,7 +34,9 @@ import com.ibader.citoyenpro.ui.admin.AdminIncidentDetailRoute
 import com.ibader.citoyenpro.ui.admin.AdminIncidentsRoute
 import com.ibader.citoyenpro.ui.admin.AdminStatsRoute
 import com.ibader.citoyenpro.ui.admin.AdminUsersRoute
+import com.ibader.citoyenpro.ui.common.AppTopBar
 import com.ibader.citoyenpro.ui.common.SyncStatusIndicator
+import com.ibader.citoyenpro.ui.common.appNavigationBarColors
 
 private const val INCIDENT_DETAIL_ROUTE = "admin_incident_detail"
 private const val INCIDENT_ID_ARG = "incidentId"
@@ -59,9 +60,10 @@ fun AdminNavHost(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
         topBar = {
-            TopAppBar(
-                title = { Text("Espace administrateur") },
+            AppTopBar(
+                title = "Espace administrateur",
                 actions = {
                     SyncStatusIndicator(
                         incidentRepository = incidentRepository,
@@ -77,7 +79,10 @@ fun AdminNavHost(
             val backStackEntry by tabNavController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
 
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
                 AdminDestination.items.forEach { destination ->
                     NavigationBarItem(
                         selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
@@ -90,6 +95,7 @@ fun AdminNavHost(
                                 restoreState = true
                             }
                         },
+                        colors = appNavigationBarColors(),
                         icon = { Icon(destination.icon, contentDescription = destination.label) },
                         // labelSmall (plutôt que labelMedium, la taille par défaut de
                         // NavigationBarItem) + une seule ligne forcée : à 5 onglets sur

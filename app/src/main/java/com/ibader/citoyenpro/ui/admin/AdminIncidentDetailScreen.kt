@@ -22,10 +22,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -53,7 +52,11 @@ import com.ibader.citoyenpro.data.repository.IncidentUpdateService
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
 import com.ibader.citoyenpro.domain.model.libelle
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppTextField
+import com.ibader.citoyenpro.ui.common.AppTopBar
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
+import com.ibader.citoyenpro.ui.theme.AppControlCornerRadius
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -107,11 +110,12 @@ fun AdminIncidentDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    AppBackground(modifier = modifier) {
     Scaffold(
-        modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = { Text("Détail du signalement") },
+            AppTopBar(
+                title = "Détail du signalement",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
@@ -237,6 +241,7 @@ fun AdminIncidentDetailScreen(
             }
         }
     }
+    }
 }
 
 // Champ libre (aucune liste de services prédéfinie dans le domaine pour
@@ -255,17 +260,17 @@ private fun ServiceAssignmentSection(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = "Service compétent", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
+        AppTextField(
             value = serviceInput,
             onValueChange = { serviceInput = it },
-            label = { Text("Service affecté") },
-            placeholder = { Text("Ex. Service Voirie") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            label = "Service affecté",
+            placeholder = "Ex. Service Voirie",
+            enabled = true
         )
         Button(
             onClick = { onServiceAssigned(serviceInput) },
-            enabled = serviceInput != currentService.orEmpty()
+            enabled = serviceInput != currentService.orEmpty(),
+            shape = RoundedCornerShape(AppControlCornerRadius)
         ) {
             Text("Enregistrer")
         }
@@ -356,7 +361,7 @@ private fun AdminIncidentDetailScreenPreview() {
                     latitude = 33.5731,
                     longitude = -7.5898,
                     adresse = "Boulevard Mohammed V, Casablanca",
-                    citoyenId = 1,
+                    citoyenUid = "preview-uid",
                     serviceAffecte = "Service Éclairage public",
                     dateCreation = System.currentTimeMillis(),
                     dateMaj = System.currentTimeMillis()

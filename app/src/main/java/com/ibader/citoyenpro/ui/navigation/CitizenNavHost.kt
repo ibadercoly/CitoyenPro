@@ -3,12 +3,12 @@ package com.ibader.citoyenpro.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -34,7 +34,9 @@ import com.ibader.citoyenpro.ui.citizen.CreateIncidentRoute
 import com.ibader.citoyenpro.ui.citizen.IncidentDetailRoute
 import com.ibader.citoyenpro.ui.citizen.MyIncidentsRoute
 import com.ibader.citoyenpro.ui.citizen.PublicIncidentsRoute
+import com.ibader.citoyenpro.ui.common.AppTopBar
 import com.ibader.citoyenpro.ui.common.SyncStatusIndicator
+import com.ibader.citoyenpro.ui.common.appNavigationBarColors
 
 private const val CREATE_INCIDENT_ROUTE = "citizen_create_incident"
 private const val INCIDENT_DETAIL_ROUTE = "citizen_incident_detail"
@@ -64,9 +66,10 @@ fun CitizenNavHost(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
         topBar = {
-            TopAppBar(
-                title = { Text("Espace citoyen") },
+            AppTopBar(
+                title = "Espace citoyen",
                 actions = {
                     SyncStatusIndicator(
                         incidentRepository = incidentRepository,
@@ -82,7 +85,10 @@ fun CitizenNavHost(
             val backStackEntry by tabNavController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
 
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
                 CitizenDestination.items.forEach { destination ->
                     NavigationBarItem(
                         selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
@@ -96,7 +102,8 @@ fun CitizenNavHost(
                             }
                         },
                         icon = { Icon(destination.icon, contentDescription = destination.label) },
-                        label = { Text(destination.label) }
+                        label = { Text(destination.label) },
+                        colors = appNavigationBarColors()
                     )
                 }
             }

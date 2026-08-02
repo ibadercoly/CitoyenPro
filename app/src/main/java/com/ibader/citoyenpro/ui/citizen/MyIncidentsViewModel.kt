@@ -22,13 +22,13 @@ class MyIncidentsViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<MyIncidentsUiState> = run {
-        val citoyenId = userRepository.currentUser.value?.id
+        val citoyenUid = userRepository.currentUser.value?.firebaseUid
 
-        if (citoyenId == null) {
+        if (citoyenUid == null) {
             MutableStateFlow(MyIncidentsUiState(isLoading = false))
         } else {
             combine(
-                incidentRepository.getByCitoyen(citoyenId),
+                incidentRepository.getByCitoyen(citoyenUid),
                 categoryRepository.getAll()
             ) { incidents, categories ->
                 MyIncidentsUiState(

@@ -1,9 +1,7 @@
 package com.ibader.citoyenpro.ui.citizen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +25,9 @@ import com.ibader.citoyenpro.data.repository.IncidentRepository
 import com.ibader.citoyenpro.data.repository.UserRepository
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.domain.model.Priority
+import com.ibader.citoyenpro.ui.common.AppBackground
+import com.ibader.citoyenpro.ui.common.AppCard
+import com.ibader.citoyenpro.ui.common.AppPrimaryButton
 import com.ibader.citoyenpro.ui.common.IncidentStatusBadge
 import com.ibader.citoyenpro.ui.common.StatCounterCard
 import com.ibader.citoyenpro.ui.theme.CitoyenProTheme
@@ -76,33 +75,38 @@ fun CitizenHomeScreen(
         return
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text(text = "Bonjour, ${uiState.userName}", style = MaterialTheme.typography.headlineSmall)
-        }
-        item {
-            Button(onClick = onCreateIncidentClick, modifier = Modifier.fillMaxWidth()) {
-                Text("Signaler un incident")
+    AppBackground(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Text(text = "Bonjour, ${uiState.userName}", style = MaterialTheme.typography.headlineSmall)
             }
-        }
-        item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCounterCard(label = "Total", value = uiState.totalIncidents, modifier = Modifier.weight(1f))
-                uiState.byStatus.forEach { entry ->
-                    StatCounterCard(label = entry.status.libelle, value = entry.count, modifier = Modifier.weight(1f))
+            item {
+                AppPrimaryButton(
+                    text = "Signaler un incident",
+                    isLoading = false,
+                    enabled = true,
+                    onClick = onCreateIncidentClick
+                )
+            }
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatCounterCard(label = "Total", value = uiState.totalIncidents, modifier = Modifier.weight(1f))
+                    uiState.byStatus.forEach { entry ->
+                        StatCounterCard(label = entry.status.libelle, value = entry.count, modifier = Modifier.weight(1f))
+                    }
                 }
             }
-        }
-        if (uiState.recentIncidents.isNotEmpty()) {
-            item {
-                Text(text = "Vos derniers signalements", style = MaterialTheme.typography.titleMedium)
-            }
-            items(uiState.recentIncidents, key = { it.id }) { item ->
-                HomeIncidentRow(item = item, onClick = { onIncidentClick(item.id) })
+            if (uiState.recentIncidents.isNotEmpty()) {
+                item {
+                    Text(text = "Vos derniers signalements", style = MaterialTheme.typography.titleMedium)
+                }
+                items(uiState.recentIncidents, key = { it.id }) { item ->
+                    HomeIncidentRow(item = item, onClick = { onIncidentClick(item.id) })
+                }
             }
         }
     }
@@ -110,31 +114,24 @@ fun CitizenHomeScreen(
 
 @Composable
 private fun HomeIncidentRow(item: IncidentListItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+    AppCard(
+        onClick = onClick,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                IncidentStatusBadge(status = item.status)
-            }
-            Text(
-                text = "${item.categoryNom} · ${dateFormat.format(item.dateCreation)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = item.titre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IncidentStatusBadge(status = item.status)
         }
+        Text(
+            text = "${item.categoryNom} · ${dateFormat.format(item.dateCreation)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
