@@ -37,6 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -222,8 +224,18 @@ fun AppPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Retour haptique explicite au clic : sur un backend local (dev), un
+    // envoi se termine en quelques millisecondes, trop vite pour que
+    // l'indicateur de chargement soit visible à l'œil — sans cette
+    // vibration, l'utilisateur n'a alors aucune confirmation perceptible
+    // que le bouton a bien réagi à son appui.
+    val haptic = LocalHapticFeedback.current
+
     Button(
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+            onClick()
+        },
         enabled = enabled,
         shape = RoundedCornerShape(AppControlCornerRadius),
         modifier = modifier

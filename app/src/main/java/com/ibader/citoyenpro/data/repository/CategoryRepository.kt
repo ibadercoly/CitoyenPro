@@ -43,12 +43,25 @@ class CategoryRepository(
     fun getAll(): Flow<List<CategoryEntity>> = categoryDao.getAll()
 
     // Récupère les catégories distantes et les fusionne en local ; à appeler
-    // au lancement de l'app (cf. AppNavHost), en complément des catégories
-    // par défaut semées par AppDatabase. Silencieux en cas d'échec (pas de
-    // réseau, backend indisponible) : Room reste alors la seule source de
-    // données, comme avant l'introduction de l'API.
+    // au lancement de l'app (cf. AppNavHost). Silencieux en cas d'échec (pas
+    // de réseau, backend indisponible) : Room reste alors la seule source de
+    // données. Met à jour la ligne existante plutôt que de la remplacer
+    // (delete + insert) : un remplacement échouerait avec une
+    // SQLiteConstraintException (et plantait toute l'app, cette synchro
+    // n'étant pas protégée individuellement) dès qu'un signalement local
+    // référence encore cette catégorie, la contrainte de clé étrangère
+    // interdisant sa suppression tant qu'elle est utilisée.
     suspend fun syncFromRemote() {
         val remoteCategories = runCatching { apiService.getCategories() }.getOrNull() ?: return
-        remoteCategories.forEach { dto -> categoryDao.upsert(dto.toEntity()) }
+        remoteCategories.forEach { dto ->
+            runCatching {
+                val entity = dto.toEntity()
+                if (categoryDao.getById(entity.id) != null) {
+                    categoryDao.update(entity)
+                } else {
+                    categoryDao.insert(entity)
+                }
+            }
+        }
     }
 }

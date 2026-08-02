@@ -4,17 +4,23 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.messaging.FirebaseMessaging
 import com.ibader.citoyenpro.data.local.dao.UserDao
 import com.ibader.citoyenpro.data.local.entities.UserEntity
 import com.ibader.citoyenpro.data.remote.ApiService
 import com.ibader.citoyenpro.data.remote.AuthTokenProvider
 import com.ibader.citoyenpro.data.remote.dto.SyncUserRequestDto
+import com.ibader.citoyenpro.data.remote.mapper.toEntity
 import com.ibader.citoyenpro.domain.model.UserRole
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class EmailAlreadyUsedException : Exception("Un compte existe déjà avec cet email")
@@ -40,6 +46,16 @@ class UserRepository(
     // retrouver après un redémarrage du process (cf. AppNavHost au démarrage).
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser.asStateFlow()
+
+    // Scope propre au repository (pas au ViewModel appelant) : register()/
+    // login() sont appelés depuis viewModelScope, or dès que currentUser
+    // change, AppNavHost navigue immédiatement et fait sortir l'écran de
+    // connexion/inscription de la pile — ce qui annule son ViewModel et donc
+    // toute coroutine encore en vol dans son scope. La synchro backend est
+    // lancée ici pour survivre à cette navigation au lieu d'être annulée en
+    // plein vol (constaté : requêtes /users/sync coupées avec IOException
+    // "Canceled" juste après une inscription/connexion réussie).
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         firebaseAuth.addAuthStateListener { auth ->
@@ -88,10 +104,14 @@ class UserRepository(
     fun getAll(): Flow<List<UserEntity>> = userDao.getAll()
 
     // A appeler une fois au démarrage de l'app : si Firebase a déjà une session
-    // ouverte (persistée par son SDK), recharge le profil Room correspondant.
+    // ouverte (persistée par son SDK), recharge le profil Room correspondant
+    // (ou le retélécharge depuis le backend s'il n'existe plus localement,
+    // cf. login()).
     suspend fun restoreSession() {
         val firebaseUser = firebaseAuth.currentUser ?: return
-        val user = userDao.getByFirebaseUid(firebaseUser.uid) ?: return
+        val user = userDao.getByFirebaseUid(firebaseUser.uid)
+            ?: fetchAndCacheProfileFromBackend(firebaseUser)
+            ?: return
         _currentUser.value = user
         subscribeToUserTopic(firebaseUser.uid)
         syncUserWithBackend(user.nom)
@@ -132,11 +152,33 @@ class UserRepository(
             throw InvalidCredentialsException()
         }
         val firebaseUser = authResult.user ?: throw InvalidCredentialsException()
-        val user = userDao.getByFirebaseUid(firebaseUser.uid) ?: throw InvalidCredentialsException()
+        // Le profil applicatif (rôle, nom) peut manquer localement même si
+        // Firebase authentifie correctement : réinstallation, "pm clear",
+        // nouvel appareil... Dans ce cas on le retélécharge depuis le
+        // backend (MySQL fait foi) plutôt que de traiter ça comme un mot de
+        // passe incorrect.
+        val user = userDao.getByFirebaseUid(firebaseUser.uid)
+            ?: fetchAndCacheProfileFromBackend(firebaseUser)
+            ?: throw InvalidCredentialsException()
         _currentUser.value = user
         subscribeToUserTopic(firebaseUser.uid)
         syncUserWithBackend(user.nom)
         user
+    }
+
+    // Récupère le profil depuis le backend (GET /users/me) et le met en
+    // cache dans Room, pour le cas où Firebase authentifie correctement un
+    // utilisateur dont le profil applicatif n'existe plus localement (cf.
+    // login()/restoreSession()). Le token doit être posé explicitement ici
+    // plutôt que de compter sur le listener addIdTokenListener (asynchrone,
+    // pas garanti d'avoir fini au moment de cet appel).
+    private suspend fun fetchAndCacheProfileFromBackend(firebaseUser: FirebaseUser): UserEntity? {
+        authTokenProvider.token = runCatching { firebaseUser.getIdToken(false).await().token }.getOrNull()
+            ?: return null
+        val dto = runCatching { apiService.getMe() }.getOrNull() ?: return null
+        val entity = dto.toEntity()
+        val id = userDao.insert(entity)
+        return entity.copy(id = id)
     }
 
     suspend fun logout() {
@@ -156,17 +198,19 @@ class UserRepository(
     // l'app, Room restant la source de vérité locale. Si le rôle renvoyé par
     // le serveur diffère (ex. promotion admin faite côté back-office), la
     // session locale est mise à jour pour en tenir compte sans action manuelle.
-    private suspend fun syncUserWithBackend(nom: String) {
-        val dto = runCatching {
-            apiService.syncUser(SyncUserRequestDto(nom = nom.takeIf { it.isNotBlank() }))
-        }.getOrNull() ?: return
+    private fun syncUserWithBackend(nom: String) {
+        repositoryScope.launch {
+            val dto = runCatching {
+                apiService.syncUser(SyncUserRequestDto(nom = nom.takeIf { it.isNotBlank() }))
+            }.getOrNull() ?: return@launch
 
-        val remoteRole = runCatching { UserRole.valueOf(dto.role) }.getOrNull() ?: return
-        val current = _currentUser.value ?: return
-        if (remoteRole != current.role) {
-            val updated = current.copy(role = remoteRole)
-            userDao.update(updated)
-            _currentUser.value = updated
+            val remoteRole = runCatching { UserRole.valueOf(dto.role) }.getOrNull() ?: return@launch
+            val current = _currentUser.value ?: return@launch
+            if (remoteRole != current.role) {
+                val updated = current.copy(role = remoteRole)
+                userDao.update(updated)
+                _currentUser.value = updated
+            }
         }
     }
 

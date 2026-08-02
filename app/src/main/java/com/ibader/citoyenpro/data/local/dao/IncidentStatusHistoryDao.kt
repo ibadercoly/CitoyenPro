@@ -14,4 +14,9 @@ interface IncidentStatusHistoryDao {
 
     @Query("SELECT * FROM incident_status_history WHERE incidentId = :incidentId ORDER BY date ASC")
     fun getByIncident(incidentId: Long): Flow<List<IncidentStatusHistoryEntity>>
+
+    // Utilisé par IncidentRepository pour faire pointer l'historique vers
+    // l'id serveur d'un incident après sa création (cf. reconcileLocalId).
+    @Query("UPDATE incident_status_history SET incidentId = :newIncidentId WHERE incidentId = :oldIncidentId")
+    suspend fun reassignIncidentId(oldIncidentId: Long, newIncidentId: Long)
 }

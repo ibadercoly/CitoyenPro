@@ -60,8 +60,12 @@ fun AppNavHost(
         // pour retrouver le profil applicatif (rôle) après un redémarrage du
         // process, avant de tenter de rejouer les opérations en attente.
         userRepository.restoreSession()
-        incidentRepository.syncPendingChanges()
+        // Catégories avant incidents : un incident référence une catégorie
+        // (clé étrangère) — sur une base locale fraîche (pas de seed local,
+        // cf. AppDatabase), tirer les incidents en premier ferait planter
+        // l'insertion dès qu'une catégorie référencée n'existe pas encore.
         categoryRepository.syncFromRemote()
+        incidentRepository.syncPendingChanges()
     }
 
     // Demandée dès qu'une session est ouverte (citoyen ou admin) : les

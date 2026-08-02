@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,8 +26,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -91,10 +95,17 @@ fun AdminIncidentDetailRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(uiState.isDeleted) {
+        if (uiState.isDeleted) onNavigateBack()
+    }
+
     AdminIncidentDetailScreen(
         uiState = uiState,
         onStatusSelected = viewModel::onStatusSelected,
         onServiceAssigned = viewModel::onServiceAssigned,
+        onDeleteClick = viewModel::onDeleteClick,
+        onDismissDeleteConfirmation = viewModel::onDismissDeleteConfirmation,
+        onConfirmDelete = viewModel::onConfirmDelete,
         onNavigateBack = onNavigateBack,
         modifier = modifier
     )
@@ -107,6 +118,9 @@ fun AdminIncidentDetailScreen(
     uiState: AdminIncidentDetailUiState,
     onStatusSelected: (IncidentStatus) -> Unit,
     onServiceAssigned: (String) -> Unit,
+    onDeleteClick: () -> Unit,
+    onDismissDeleteConfirmation: () -> Unit,
+    onConfirmDelete: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -119,6 +133,13 @@ fun AdminIncidentDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                },
+                actions = {
+                    if (uiState.incident != null) {
+                        IconButton(onClick = onDeleteClick) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Supprimer le signalement")
+                        }
                     }
                 }
             )
@@ -242,6 +263,33 @@ fun AdminIncidentDetailScreen(
         }
     }
     }
+
+    if (uiState.showDeleteConfirmation) {
+        DeleteIncidentConfirmationDialog(
+            onDismiss = onDismissDeleteConfirmation,
+            onConfirm = onConfirmDelete
+        )
+    }
+}
+
+@Composable
+private fun DeleteIncidentConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { Text("Supprimer ce signalement ?") },
+        text = { Text("Cette action est définitive et supprimera aussi son historique de statuts.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Supprimer") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler") }
+        }
+    )
 }
 
 // Champ libre (aucune liste de services prédéfinie dans le domaine pour
@@ -385,6 +433,9 @@ private fun AdminIncidentDetailScreenPreview() {
             ),
             onStatusSelected = {},
             onServiceAssigned = {},
+            onDeleteClick = {},
+            onDismissDeleteConfirmation = {},
+            onConfirmDelete = {},
             onNavigateBack = {}
         )
     }

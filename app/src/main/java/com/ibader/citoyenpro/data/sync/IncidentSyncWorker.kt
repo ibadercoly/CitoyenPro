@@ -34,8 +34,11 @@ class IncidentSyncWorker(
         val repository = IncidentRepository(
             incidentDao = database.incidentDao(),
             pendingOperationDao = database.pendingIncidentOperationDao(),
+            historyDao = database.incidentStatusHistoryDao(),
+            voteDao = database.incidentVoteDao(),
             apiService = RetrofitClient.getApiService(),
-            networkMonitor = NetworkMonitor(applicationContext)
+            networkMonitor = NetworkMonitor(applicationContext),
+            context = applicationContext
         )
         return if (repository.syncPendingChanges()) Result.success() else Result.retry()
     }

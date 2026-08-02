@@ -25,4 +25,9 @@ interface IncidentVoteDao {
 
     @Query("SELECT incidentId FROM incident_votes WHERE citoyenId = :citoyenId")
     fun getVotedIncidentIds(citoyenId: Long): Flow<List<Long>>
+
+    // Utilisé par IncidentRepository pour faire pointer les votes vers l'id
+    // serveur d'un incident après sa création (cf. reconcileLocalId).
+    @Query("UPDATE incident_votes SET incidentId = :newIncidentId WHERE incidentId = :oldIncidentId")
+    suspend fun reassignIncidentId(oldIncidentId: Long, newIncidentId: Long)
 }

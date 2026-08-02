@@ -25,3 +25,17 @@ data class IncidentDto(
     val dateCreation: String,
     val dateMaj: String
 )
+
+// PATCH /incidents/{id}/status (admin uniquement côté backend)
+data class UpdateStatusRequestDto(
+    val status: String,
+    val commentaire: String? = null
+)
+
+// PATCH /incidents/{id}/assign (admin uniquement côté backend). Le backend
+// exige une chaîne non vide (pas de moyen de retirer une affectation via
+// cette route) : cf. IncidentRepository, qui n'appelle ce endpoint que si
+// serviceAffecte est renseigné.
+data class AssignServiceRequestDto(
+    val serviceAffecte: String
+)

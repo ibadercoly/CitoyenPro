@@ -69,11 +69,19 @@ class CreateIncidentViewModel(
             val position = locationRepository.getCurrentPosition()
             _uiState.update {
                 if (position != null) {
+                    // Le géocodage inverse (résolution en adresse lisible) peut
+                    // échouer indépendamment de la position GPS elle-même
+                    // (connexion instable, service indisponible...) : on retombe
+                    // alors sur les coordonnées formatées plutôt que de laisser
+                    // l'adresse vide, qui bloquerait sinon l'envoi (le backend
+                    // exige une adresse non vide).
+                    val adresse = position.adresse
+                        ?: "Position GPS : %.5f, %.5f".format(position.latitude, position.longitude)
                     it.copy(
                         isLocating = false,
                         latitude = position.latitude,
                         longitude = position.longitude,
-                        adresse = position.adresse ?: it.adresse
+                        adresse = adresse
                     )
                 } else {
                     it.copy(isLocating = false, locationError = "Impossible de récupérer la position actuelle")
@@ -84,13 +92,35 @@ class CreateIncidentViewModel(
 
     fun submit() {
         val state = _uiState.value
+        // Garde-fou contre le double-tap : un appui rapide et répété peut
+        // envoyer plusieurs clics avant que la recomposition ne désactive
+        // visuellement le bouton (isLoading), ce qui créait des signalements
+        // en double. Le contrôle ici est synchrone et immédiat, indépendant
+        // du délai de recomposition Compose.
+        if (state.isLoading) return
+
         val titreError = validateTitre(state.titre)
         val descriptionError = validateDescription(state.description)
         val categoryError = if (state.selectedCategoryId == null) "Sélectionnez une catégorie" else null
+        // Le backend exige une adresse non vide (cf. POST /incidents) : sans
+        // cette vérification, un signalement envoyé sans avoir renseigné sa
+        // position reste bloqué indéfiniment dans la file de synchro,
+        // rejeté en boucle silencieuse par le serveur (400), sans jamais
+        // remonter d'erreur visible à l'utilisateur.
+        val locationError = if (state.adresse.isBlank()) {
+            "Indiquez votre position avant d'envoyer le signalement"
+        } else {
+            null
+        }
 
-        if (titreError != null || descriptionError != null || categoryError != null) {
+        if (titreError != null || descriptionError != null || categoryError != null || locationError != null) {
             _uiState.update {
-                it.copy(titreError = titreError, descriptionError = descriptionError, categoryError = categoryError)
+                it.copy(
+                    titreError = titreError,
+                    descriptionError = descriptionError,
+                    categoryError = categoryError,
+                    locationError = locationError
+                )
             }
             return
         }

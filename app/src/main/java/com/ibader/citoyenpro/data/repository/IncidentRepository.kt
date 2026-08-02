@@ -1,17 +1,28 @@
 package com.ibader.citoyenpro.data.repository
 
+import android.content.Context
+import android.net.Uri
+import androidx.room.withTransaction
 import com.ibader.citoyenpro.data.local.dao.IncidentDao
+import com.ibader.citoyenpro.data.local.dao.IncidentStatusHistoryDao
+import com.ibader.citoyenpro.data.local.dao.IncidentVoteDao
 import com.ibader.citoyenpro.data.local.dao.PendingIncidentOperationDao
+import com.ibader.citoyenpro.data.local.database.AppDatabase
 import com.ibader.citoyenpro.data.local.entities.IncidentEntity
 import com.ibader.citoyenpro.data.local.entities.PendingIncidentOperationEntity
 import com.ibader.citoyenpro.data.local.entities.PendingOperationType
 import com.ibader.citoyenpro.data.remote.ApiService
+import com.ibader.citoyenpro.data.remote.dto.AssignServiceRequestDto
+import com.ibader.citoyenpro.data.remote.dto.UpdateStatusRequestDto
 import com.ibader.citoyenpro.data.remote.mapper.toDto
 import com.ibader.citoyenpro.data.remote.mapper.toEntity
 import com.ibader.citoyenpro.data.sync.SyncStatusHolder
 import com.ibader.citoyenpro.domain.model.IncidentStatus
 import com.ibader.citoyenpro.util.NetworkMonitor
 import kotlinx.coroutines.flow.Flow
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 // Room est la source unique de vérité affichée à l'UI (toutes les lectures
 // ci-dessous viennent d'elle, jamais directement de l'API) ; ce repository
@@ -35,8 +46,11 @@ import kotlinx.coroutines.flow.Flow
 class IncidentRepository(
     private val incidentDao: IncidentDao,
     private val pendingOperationDao: PendingIncidentOperationDao,
+    private val historyDao: IncidentStatusHistoryDao,
+    private val voteDao: IncidentVoteDao,
     private val apiService: ApiService,
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val context: Context
 ) {
 
     suspend fun insert(incident: IncidentEntity): Long {
@@ -134,7 +148,11 @@ class IncidentRepository(
         remoteIncidents.forEach { dto ->
             val id = dto.id ?: return@forEach
             if (id in pendingIds) return@forEach
-            incidentDao.upsert(dto.toEntity())
+            // Isolé par incident : une contrainte de clé étrangère (catégorie
+            // pas encore synchronisée localement, ordre d'appel imprévu...)
+            // ne doit jamais faire planter toute l'app ni bloquer les autres
+            // incidents de cette même synchro.
+            runCatching { incidentDao.upsert(dto.toEntity()) }
         }
         return true
     }
@@ -186,19 +204,100 @@ class IncidentRepository(
 
     // Best-effort : toute erreur (réseau, backend indisponible, réponse en
     // échec) est traitée comme "à retenter plus tard" plutôt que distinguée
-    // finement, faute de backend réel contre lequel calibrer ce
-    // comportement pour l'instant.
+    // finement. Le backend n'expose pas de mutation générique (PUT) pour un
+    // incident existant, seulement deux routes ciblées réservées aux admins
+    // (statut, affectation de service) : une opération UPDATE en file pousse
+    // donc systématiquement l'état local courant des deux vers ces deux
+    // routes plutôt qu'une seule requête générique, pour rester cohérent
+    // qu'elle ait été déclenchée par updateStatus() ou updateServiceAffecte()
+    // (la file ne retient qu'une seule opération par incident, cf.
+    // resolveOperationType, donc l'origine exacte n'est plus distinguable au
+    // moment du push).
     private suspend fun pushToApi(operation: PendingIncidentOperationEntity): Boolean = runCatching {
         when (operation.operationType) {
-            PendingOperationType.CREATE, PendingOperationType.UPDATE -> {
+            PendingOperationType.CREATE -> {
                 val incident = incidentDao.getById(operation.incidentId) ?: return@runCatching true
-                if (operation.operationType == PendingOperationType.CREATE) {
-                    apiService.createIncident(incident.toDto())
-                } else {
-                    apiService.updateIncident(operation.incidentId, incident.toDto())
+                val created = apiService.createIncident(incident.toDto())
+                val serverId = created.id
+                if (serverId != null) {
+                    reconcileLocalId(operation.incidentId, serverId)
+                    uploadPhotoIfNeeded(serverId, incident.photoUri)
+                }
+            }
+            PendingOperationType.UPDATE -> {
+                val incident = incidentDao.getById(operation.incidentId) ?: return@runCatching true
+                apiService.updateIncidentStatus(
+                    operation.incidentId,
+                    UpdateStatusRequestDto(status = incident.status.name)
+                )
+                // Le backend n'accepte pas de retirer une affectation via
+                // cette route (chaîne non vide requise) : une affectation
+                // locale effacée reste donc locale tant qu'aucune nouvelle
+                // affectation n'est faite.
+                incident.serviceAffecte?.takeIf { it.isNotBlank() }?.let { service ->
+                    apiService.assignIncidentService(operation.incidentId, AssignServiceRequestDto(service))
                 }
             }
             PendingOperationType.DELETE -> apiService.deleteIncident(operation.incidentId)
         }
     }.isSuccess
+
+    // Remplace le lien local temporaire (content://, valable seulement sur cet
+    // appareil et potentiellement révoqué entre deux sessions) par une vraie
+    // URL hébergée par le serveur. Best-effort et isolé dans son propre
+    // runCatching : un échec d'upload ne doit jamais faire échouer la
+    // création elle-même, déjà réussie à ce stade côté serveur — sinon
+    // l'opération serait rejouée et créerait un doublon (createIncident
+    // n'est pas idempotent). Ignoré si aucune photo, ou si elle a déjà une
+    // vraie URL (ex: relecture d'un incident déjà uploadé). Appelé après
+    // reconcileLocalId : id est à la fois l'id local et l'id serveur.
+    private suspend fun uploadPhotoIfNeeded(id: Long, photoUri: String?) {
+        if (photoUri.isNullOrBlank() || photoUri.startsWith("http")) return
+
+        runCatching {
+            val uri = Uri.parse(photoUri)
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@runCatching
+            // Le backend restreint strictement le type MIME du champ envoyé
+            // (JPEG/PNG/WEBP, cf. upload.middleware.js) : il faut le type réel
+            // du fichier, pas un générique "image/*" que le serveur rejetterait.
+            val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+            val extension = when (mimeType) {
+                "image/png" -> "png"
+                "image/webp" -> "webp"
+                else -> "jpg"
+            }
+            val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+            val part = MultipartBody.Part.createFormData("photo", "incident_$id.$extension", requestBody)
+            val updated = apiService.uploadIncidentPhoto(id, part)
+            val current = incidentDao.getById(id) ?: return@runCatching
+            incidentDao.update(current.copy(photoUri = updated.photoUrl))
+        }
+    }
+
+    // Remplace l'id local temporaire d'un incident (attribué par Room à sa
+    // création hors-ligne) par l'id réel renvoyé par le serveur, pour que
+    // toute action future (statut, affectation, suppression, photo...) cible
+    // la bonne ressource — sans ça, l'app continuerait d'utiliser l'id local
+    // pour ses appels réseau, qui ne correspond à rien côté serveur (ou pire,
+    // correspond par coïncidence à un tout autre incident). Ordre choisi pour
+    // ne jamais violer la contrainte de clé étrangère (incident_status_history
+    // -> incidents) : on insère d'abord la copie sous le nouvel id, on
+    // ré-associe les lignes qui référencent l'ancien id, puis seulement
+    // ensuite on supprime l'ancienne ligne (elle n'est alors plus référencée).
+    // Toute ligne préexistante au nouvel id (doublon issu d'un pull antérieur
+    // à ce correctif) est retirée avant l'insertion pour éviter un conflit de
+    // clé primaire.
+    private suspend fun reconcileLocalId(oldLocalId: Long, serverId: Long) {
+        if (oldLocalId == serverId) return
+
+        AppDatabase.getInstance(context).withTransaction {
+            val existing = incidentDao.getById(oldLocalId) ?: return@withTransaction
+            incidentDao.getById(serverId)?.let { incidentDao.delete(it) }
+            incidentDao.insert(existing.copy(id = serverId))
+            historyDao.reassignIncidentId(oldLocalId, serverId)
+            voteDao.reassignIncidentId(oldLocalId, serverId)
+            pendingOperationDao.reassignIncidentId(oldLocalId, serverId)
+            incidentDao.delete(existing)
+        }
+    }
 }

@@ -7,5 +7,7 @@ data class AdminIncidentDetailUiState(
     val isLoading: Boolean = true,
     val incident: IncidentEntity? = null,
     val categoryNom: String = "",
-    val history: List<IncidentStatusHistoryEntity> = emptyList()
+    val history: List<IncidentStatusHistoryEntity> = emptyList(),
+    val showDeleteConfirmation: Boolean = false,
+    val isDeleted: Boolean = false
 )

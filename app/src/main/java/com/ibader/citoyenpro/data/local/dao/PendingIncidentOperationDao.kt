@@ -26,4 +26,11 @@ interface PendingIncidentOperationDao {
 
     @Query("SELECT COUNT(*) FROM pending_incident_operations")
     fun observeCount(): Flow<Int>
+
+    // Utilisé par IncidentRepository pour faire pointer une éventuelle
+    // opération encore en file vers l'id serveur d'un incident après sa
+    // création (cf. reconcileLocalId) — cas rare (une action a été
+    // déclenchée avant la fin de la création) mais évite une file orpheline.
+    @Query("UPDATE pending_incident_operations SET incidentId = :newIncidentId WHERE incidentId = :oldIncidentId")
+    suspend fun reassignIncidentId(oldIncidentId: Long, newIncidentId: Long)
 }
